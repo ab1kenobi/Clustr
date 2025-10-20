@@ -2,6 +2,17 @@
 
 # dependencies
 node_modules/
+.expo/
+.expo-shared/
+*.log
+*.DS_Store
+.env
+.idea/
+.vscode/
+build/
+android/app/build/
+ios/Pods/
+
 
 # Expo
 .expo/
