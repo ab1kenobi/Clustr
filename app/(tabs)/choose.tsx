@@ -36,7 +36,7 @@ export default function ChooseInterests() {
 
     const fullData = { ...params, interests: selected };
     console.log('Final meetup data:', fullData);
-    router.push('/'); // Replace with next screen or backend submission
+    router.replace('/discover'); 
   };
 
   return (

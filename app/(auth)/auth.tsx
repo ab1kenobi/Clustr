@@ -3,8 +3,10 @@ import { useGoogleAuth } from "@/config/auth";
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from "react-native";
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "@/config/firebase";
+import { useRouter } from "expo-router";
 
 export default function AuthScreen() {
+  const router = useRouter();
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -27,10 +29,12 @@ export default function AuthScreen() {
         const res = await createUserWithEmailAndPassword(auth, email.trim(), password);
         console.log("✅ Signup OK:", res.user.uid);
         Alert.alert("Success", "Account created");
+        router.replace("/choose");
       } else {
         const res = await signInWithEmailAndPassword(auth, email.trim(), password);
         console.log("✅ Signin OK:", res.user.uid);
         Alert.alert("Welcome", "Signed in");
+        router.replace("/discover");
       }
     } catch (e: any) {
       console.log("❌ Auth error:", e?.code || e?.message || e);

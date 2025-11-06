@@ -15,6 +15,7 @@ import { EventCard } from "@/components/ui/EventCard";
 import { PlatformFilters, PlatformType } from "@/components/ui/PlatformFilters";
 //import { BottomTabNavigator } from "@/components/BottomTabNavigator";
 import { LinearGradient } from "expo-linear-gradient";
+import { useRouter } from "expo-router";
 
 interface Event {
   id: string;
@@ -121,6 +122,7 @@ const isTablet = width >= 768;
 
 export default function Discover() {
   const navigation = useNavigation();
+  const router = useRouter(); 
   const [selectedPlatform, setSelectedPlatform] = useState<PlatformType>("all");
   const [events, setEvents] = useState<Event[]>(SAMPLE_EVENTS);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -204,7 +206,7 @@ export default function Discover() {
                   <TouchableOpacity
                     style={styles.createButton}
                     activeOpacity={0.8}
-                    onPress={() => navigation.navigate("CreateMeetup" as never)}
+                    onPress={() => router.push("/create")} 
                   >
                     <LinearGradient
                       colors={["#3B82F6", "#2563EB"]}

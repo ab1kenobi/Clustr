@@ -64,7 +64,7 @@ export default function CreateMeetup() {
       <ScrollView contentContainerStyle={styles.scrollContent}>
         {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.push('/')} style={styles.backButton}>
+          <TouchableOpacity onPress={() => router.replace('/discover')} style={styles.backButton}>
             <Icon name="arrow-left" size={24} color="#666" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Create Meetup</Text>
