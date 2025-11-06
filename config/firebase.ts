@@ -1,11 +1,10 @@
 // config/firebase.ts
 import { initializeApp, getApps, getApp } from "firebase/app";
-import { Auth, getAuth, initializeAuth } from "firebase/auth";
+import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
-import ReactNativeAsyncStorage from "@react-native-async-storage/async-storage";
 
-// Firebase configuration
+// ✅ Firebase Config from .env
 const firebaseConfig = {
   apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY,
   authDomain: process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN,
@@ -16,17 +15,11 @@ const firebaseConfig = {
   measurementId: process.env.EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID,
 };
 
-// Initialize app once
+// ✅ Initialize app once
 const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 
-// ✅ Use fallback if initializeAuth isn't available
-let auth: Auth;
-try {
-  auth = initializeAuth(app, { persistence: undefined });
-} catch {
-  auth = getAuth(app);
-}
-
+// ✅ Initialize services
+const auth = getAuth(app);
 const db = getFirestore(app);
 const storage = getStorage(app);
 
