@@ -73,8 +73,8 @@ export default function Discover() {
     setDisplayedCount((prev) => Math.min(prev + 3, filteredEvents.length));
   };
 
-  const handleEventClick = (eventId: string) => {
-    navigation.navigate("MeetupDetail" as never);
+  const handleEventClick = (id: string) => {
+    router.push(`/(tabs)/meetup/${id}` as any);
   };
 
   return (
