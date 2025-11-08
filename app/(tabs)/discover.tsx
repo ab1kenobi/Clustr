@@ -31,6 +31,7 @@ interface Event {
   attendees: number;
   platform: string;
   likes: number;
+  rsvps: string; 
 }
 
 
@@ -191,6 +192,7 @@ export default function Discover() {
                       <EventCard
                         {...event}
                         onLearnMore={() => handleEventClick(event.id)}
+                        attendees={event.rsvps?.length || 0}
                         onRSVP={() => console.log(`RSVP to ${event.title}`)}
                       />
                     </TouchableOpacity>
