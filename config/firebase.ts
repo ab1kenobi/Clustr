@@ -21,8 +21,9 @@ const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 // ✅ Initialize services
 const auth = getAuth(app);
 const db = getFirestore(app);
-const storage = getStorage(app);
+const storage = getStorage(app, "gs://clustr-1fd1b.firebasestorage.app");
 
 console.log("🔥 Firebase initialized:", firebaseConfig.projectId);
+console.log("Storage bucket from env:", process.env.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET);
 
 export { app, auth, db, storage };

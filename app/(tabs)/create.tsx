@@ -17,7 +17,8 @@ import Icon from "react-native-vector-icons/Feather";
 import * as ImagePicker from "expo-image-picker";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { addDoc, collection, serverTimestamp } from "firebase/firestore";
-import { db } from "@/config/firebase"; // adjust path to your firebase.ts
+import { db, storage } from "@/config/firebase"; // ✅ use storage from config
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 
 export default function CreateMeetup() {
   const router = useRouter();
@@ -30,7 +31,7 @@ export default function CreateMeetup() {
     location: "",
     tags: [] as string[],
     visibility: "public",
-    image: null as string | null,
+    image: null as string | null, // will hold hosted URL
   });
 
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -40,6 +41,7 @@ export default function CreateMeetup() {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
+  // 🔧 Upload image to Firebase Storage
   const handleImageUpload = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
@@ -47,10 +49,34 @@ export default function CreateMeetup() {
     });
 
     if (!result.canceled && result.assets.length > 0) {
-      handleChange("image", result.assets[0].uri);
+      const asset = result.assets[0];
+      const fileUri = asset.uri;
+
+      try {
+        // Convert local URI to blob
+        const response = await fetch(fileUri);
+        const blob = await response.blob();
+
+        // Create a unique path in Storage
+        const fileName = `events/${Date.now()}-${asset.fileName || "image"}.jpg`;
+        const imageRef = ref(storage, fileName);
+
+        // Upload blob
+        await uploadBytes(imageRef, blob);
+
+        // Get public download URL
+        const downloadURL = await getDownloadURL(imageRef);
+
+        // Save hosted URL in formData
+        handleChange("image", downloadURL);
+      } catch (err: any) {
+        // Log full error payload for debugging
+        console.error("Image upload failed:", JSON.stringify(err, null, 2));
+      }
     }
   };
 
+  // 🔧 Save event in Firestore
   const handleSubmit = async () => {
     if (
       !formData.title ||
