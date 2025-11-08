@@ -6,6 +6,8 @@ import {
   TouchableOpacity,
   StyleSheet,
   Alert,
+  KeyboardAvoidingView,
+  Platform,
 } from "react-native";
 import {
   createUserWithEmailAndPassword,
@@ -14,6 +16,7 @@ import {
 import { auth, db } from "@/config/firebase";
 import { doc, setDoc, getDoc, serverTimestamp } from "firebase/firestore";
 import { useRouter } from "expo-router";
+import { colors } from "@/styles/theme";
 
 export default function AuthScreen() {
   const router = useRouter();
@@ -52,8 +55,8 @@ export default function AuthScreen() {
         router.replace("/settings");
       } else {
         const res = await signInWithEmailAndPassword(auth, email.trim(), password);
-
         const snap = await getDoc(doc(db, "users", res.user.uid));
+
         if (snap.exists() && !snap.data().onboardingComplete) {
           router.replace("/settings");
         } else {
@@ -66,30 +69,101 @@ export default function AuthScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>{mode === "signin" ? "Sign In" : "Sign Up"}</Text>
-      <TextInput style={styles.input} placeholder="Email" autoCapitalize="none" keyboardType="email-address" value={email} onChangeText={setEmail} />
-      <TextInput style={styles.input} placeholder="Password" secureTextEntry value={password} onChangeText={setPassword} />
-      {mode === "signup" && (
-        <TextInput style={styles.input} placeholder="Confirm Password" secureTextEntry value={confirm} onChangeText={setConfirm} />
-      )}
-      <TouchableOpacity style={styles.button} onPress={handleSubmit}>
-        <Text style={styles.buttonText}>{mode === "signin" ? "Sign In" : "Sign Up"}</Text>
-      </TouchableOpacity>
-      <TouchableOpacity onPress={() => setMode(mode === "signin" ? "signup" : "signin")}>
-        <Text style={styles.toggleText}>
-          {mode === "signin" ? "Don't have an account? Sign Up" : "Already have an account? Sign In"}
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+    >
+      <View style={styles.box}>
+        <Text style={styles.title}>
+          {mode === "signin" ? "Welcome Back" : "Create Account"}
         </Text>
-      </TouchableOpacity>
-    </View>
+
+        <TextInput
+          style={styles.input}
+          placeholder="Email"
+          placeholderTextColor={colors.placeholder}
+          autoCapitalize="none"
+          keyboardType="email-address"
+          value={email}
+          onChangeText={setEmail}
+        />
+
+        <TextInput
+          style={styles.input}
+          placeholder="Password"
+          placeholderTextColor={colors.placeholder}
+          secureTextEntry
+          value={password}
+          onChangeText={setPassword}
+        />
+
+        {mode === "signup" && (
+          <TextInput
+            style={styles.input}
+            placeholder="Confirm Password"
+            placeholderTextColor={colors.placeholder}
+            secureTextEntry
+            value={confirm}
+            onChangeText={setConfirm}
+          />
+        )}
+
+        <TouchableOpacity style={styles.button} onPress={handleSubmit}>
+          <Text style={styles.buttonText}>
+            {mode === "signin" ? "Sign In" : "Sign Up"}
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity onPress={() => setMode(mode === "signin" ? "signup" : "signin")}>
+          <Text style={styles.toggleText}>
+            {mode === "signin"
+              ? "Don't have an account? Sign Up"
+              : "Already have an account? Sign In"}
+          </Text>
+        </TouchableOpacity>
+      </View>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: "center", padding: 20, backgroundColor: "#fff" },
-  title: { fontSize: 28, fontWeight: "bold", marginBottom: 20, textAlign: "center" },
-  input: { borderWidth: 1, borderColor: "#ccc", padding: 12, borderRadius: 8, marginBottom: 12, color: "#000" },
-  button: { backgroundColor: "#4CAF50", padding: 14, borderRadius: 8, alignItems: "center", marginTop: 4 },
+  container: {
+    flex: 1,
+    backgroundColor: colors.background,
+    justifyContent: "center",
+    padding: 20,
+  },
+  box: {
+    backgroundColor: "#fff",
+    padding: 24,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.border,
+    elevation: 2,
+  },
+  title: { fontSize: 26, fontWeight: "700", textAlign: "center", marginBottom: 24 },
+  input: {
+    borderWidth: 1,
+    borderColor: colors.inputBorder,
+    backgroundColor: colors.inputBackground,
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 12,
+    color: colors.inputText,
+    fontSize: 16,
+  },
+  button: {
+    backgroundColor: colors.primary,
+    padding: 14,
+    borderRadius: 8,
+    alignItems: "center",
+    marginTop: 6,
+  },
   buttonText: { color: "#fff", fontSize: 16, fontWeight: "bold" },
-  toggleText: { textAlign: "center", color: "#007BFF", marginTop: 12 },
+  toggleText: {
+    textAlign: "center",
+    color: colors.primary,
+    marginTop: 14,
+    fontWeight: "600",
+  },
 });
