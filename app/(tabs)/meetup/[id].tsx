@@ -135,7 +135,9 @@ export default function MeetupDetail() {
 
       <Text style={styles.sectionTitle}>Attendees</Text>
       <Text style={styles.attendeesCount}>
-        {attendees.length} people RSVP’d
+        {attendees.length === 1
+          ? "1 person has RSVP’d"
+          : `${attendees.length} people have RSVP’d`}
       </Text>
       <View style={styles.attendeesList}>
         {attendees.map((u) => (
