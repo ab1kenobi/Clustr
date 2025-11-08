@@ -12,7 +12,7 @@ import {
   signInWithEmailAndPassword,
 } from "firebase/auth";
 import { auth, db } from "@/config/firebase";
-import { doc, setDoc, serverTimestamp } from "firebase/firestore";
+import { doc, setDoc, getDoc, serverTimestamp } from "firebase/firestore";
 import { useRouter } from "expo-router";
 
 export default function AuthScreen() {
@@ -27,7 +27,6 @@ export default function AuthScreen() {
       Alert.alert("Missing info", "Please fill in all fields");
       return;
     }
-
     if (mode === "signup" && password !== confirm) {
       Alert.alert("Passwords", "Passwords do not match");
       return;
@@ -35,81 +34,51 @@ export default function AuthScreen() {
 
     try {
       if (mode === "signup") {
-        // ✅ Create auth user
-        const res = await createUserWithEmailAndPassword(
-          auth,
-          email.trim(),
-          password
-        );
+        const res = await createUserWithEmailAndPassword(auth, email.trim(), password);
 
-        // ✅ Create user document in Firestore
         await setDoc(doc(db, "users", res.user.uid), {
           email: res.user.email,
           createdAt: serverTimestamp(),
+          name: "",
+          bio: "",
+          location: "",
+          age: 0,
+          gender: "",
+          avatar: "",
           interests: [],
+          onboardingComplete: false,
         });
 
-        console.log("✅ Signup OK:", res.user.uid);
-        Alert.alert("Success", "Account created!");
+        router.replace("/settings");
       } else {
-        const res = await signInWithEmailAndPassword(
-          auth,
-          email.trim(),
-          password
-        );
-        console.log("✅ Signin OK:", res.user.uid);
-        Alert.alert("Welcome Back!");
+        const res = await signInWithEmailAndPassword(auth, email.trim(), password);
+
+        const snap = await getDoc(doc(db, "users", res.user.uid));
+        if (snap.exists() && !snap.data().onboardingComplete) {
+          router.replace("/settings");
+        } else {
+          router.replace("/discover");
+        }
       }
     } catch (e: any) {
-      console.log("❌ Auth error:", e?.code || e?.message || e);
       Alert.alert("Auth Error", e?.code || e?.message);
     }
   };
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>
-        {mode === "signin" ? "Sign In" : "Sign Up"}
-      </Text>
-
-      <TextInput
-        style={styles.input}
-        placeholder="Email"
-        autoCapitalize="none"
-        keyboardType="email-address"
-        value={email}
-        onChangeText={setEmail}
-      />
-
-      <TextInput
-        style={styles.input}
-        placeholder="Password"
-        secureTextEntry
-        value={password}
-        onChangeText={setPassword}
-      />
-
+      <Text style={styles.title}>{mode === "signin" ? "Sign In" : "Sign Up"}</Text>
+      <TextInput style={styles.input} placeholder="Email" autoCapitalize="none" keyboardType="email-address" value={email} onChangeText={setEmail} />
+      <TextInput style={styles.input} placeholder="Password" secureTextEntry value={password} onChangeText={setPassword} />
       {mode === "signup" && (
-        <TextInput
-          style={styles.input}
-          placeholder="Confirm Password"
-          secureTextEntry
-          value={confirm}
-          onChangeText={setConfirm}
-        />
+        <TextInput style={styles.input} placeholder="Confirm Password" secureTextEntry value={confirm} onChangeText={setConfirm} />
       )}
-
       <TouchableOpacity style={styles.button} onPress={handleSubmit}>
-        <Text style={styles.buttonText}>
-          {mode === "signin" ? "Sign In" : "Sign Up"}
-        </Text>
+        <Text style={styles.buttonText}>{mode === "signin" ? "Sign In" : "Sign Up"}</Text>
       </TouchableOpacity>
-
       <TouchableOpacity onPress={() => setMode(mode === "signin" ? "signup" : "signin")}>
         <Text style={styles.toggleText}>
-          {mode === "signin"
-            ? "Don't have an account? Sign Up"
-            : "Already have an account? Sign In"}
+          {mode === "signin" ? "Don't have an account? Sign Up" : "Already have an account? Sign In"}
         </Text>
       </TouchableOpacity>
     </View>

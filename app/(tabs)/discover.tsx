@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
   View,
   Text,
@@ -16,6 +16,9 @@ import { PlatformFilters, PlatformType } from "@/components/ui/PlatformFilters";
 //import { BottomTabNavigator } from "@/components/BottomTabNavigator";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
+import { collection, onSnapshot, query, orderBy } from "firebase/firestore";
+import { db } from "@/config/firebase"; // adjust path to your firebase.ts
+
 
 interface Event {
   id: string;
@@ -30,92 +33,6 @@ interface Event {
   likes: number;
 }
 
-const SAMPLE_EVENTS: Event[] = [
-  {
-    id: "1",
-    title: "Morning Yoga in the Park",
-    image: "https://images.unsplash.com/photo-1506126613408-eca07ce68773?w=500&h=300&fit=crop",
-    date: "Tomorrow",
-    time: "7:00 AM",
-    location: "Central Park, NYC",
-    description: "Start your day with a refreshing yoga session in nature. All levels welcome.",
-    attendees: 12,
-    platform: "Meetup",
-    likes: 24,
-  },
-  {
-    id: "2",
-    title: "Tech Startup Networking Happy Hour",
-    image: "https://images.unsplash.com/photo-1552664730-d307ca884978?w=500&h=300&fit=crop",
-    date: "Wednesday",
-    time: "6:00 PM",
-    location: "Downtown Coffee Co, NYC",
-    description: "Connect with founders and tech enthusiasts. Free drinks for first 50 attendees!",
-    attendees: 28,
-    platform: "Eventbrite",
-    likes: 45,
-  },
-  {
-    id: "3",
-    title: "Canvas Painting Workshop for Beginners",
-    image: "https://images.unsplash.com/photo-1561070791-2526d30994b5?w=500&h=300&fit=crop",
-    date: "Saturday",
-    time: "2:00 PM",
-    location: "Art Studio Brooklyn, NY",
-    description: "Create your first masterpiece with our experienced instructors. Materials included.",
-    attendees: 8,
-    platform: "Facebook",
-    likes: 18,
-  },
-  {
-    id: "4",
-    title: "Soccer Game & Social Drinks",
-    image: "https://images.unsplash.com/photo-1461896836934-ffe607ba8211?w=500&h=300&fit=crop",
-    date: "Sunday",
-    time: "4:00 PM",
-    location: "Field on 5th Ave, NYC",
-    description: "Friendly soccer match followed by drinks. Skill level: all. Team formation on arrival.",
-    attendees: 15,
-    platform: "Meetup",
-    likes: 32,
-  },
-  {
-    id: "5",
-    title: "Jazz Night at The Blue Note",
-    image: "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=500&h=300&fit=crop",
-    date: "Friday",
-    time: "8:00 PM",
-    location: "The Blue Note, NYC",
-    description: "Live jazz performance with local musicians. Two-drink minimum.",
-    attendees: 42,
-    platform: "Eventbrite",
-    likes: 67,
-  },
-  {
-    id: "6",
-    title: "Web Development Bootcamp - Free Intro Class",
-    image: "https://images.unsplash.com/photo-1517694712202-14dd9538aa97?w=500&h=300&fit=crop",
-    date: "Thursday",
-    time: "7:00 PM",
-    location: "Virtual",
-    description: "Learn HTML, CSS, and JavaScript basics. Perfect for beginners. No experience needed.",
-    attendees: 35,
-    platform: "Lunchclub",
-    likes: 28,
-  },
-  {
-    id: "7",
-    title: "Plant Parent Meetup - Care Tips & Swaps",
-    image: "https://images.unsplash.com/photo-1585071324498-3d271d78a733?w=500&h=300&fit=crop",
-    date: "Monday",
-    time: "6:30 PM",
-    location: "Community Garden, NYC",
-    description: "Share plant care tips, bring a plant to swap, and meet fellow plant enthusiasts.",
-    attendees: 22,
-    platform: "Bumble",
-    likes: 41,
-  },
-];
 
 const { width } = Dimensions.get("window");
 const isTablet = width >= 768;
@@ -124,10 +41,21 @@ export default function Discover() {
   const navigation = useNavigation();
   const router = useRouter(); 
   const [selectedPlatform, setSelectedPlatform] = useState<PlatformType>("all");
-  const [events, setEvents] = useState<Event[]>(SAMPLE_EVENTS);
+  const [events, setEvents] = useState<Event[]>([]);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [displayedCount, setDisplayedCount] = useState(6);
 
+  useEffect(() => {
+    const q = query(collection(db, "events"), orderBy("createdAt", "desc"));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const data = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      })) as Event[];
+      setEvents(data);
+    });
+    return unsubscribe;
+  }, []);
   // Filter events based on selected platform
   const filteredEvents =
     selectedPlatform === "all"
@@ -137,8 +65,6 @@ export default function Discover() {
   const handleRefresh = () => {
     setIsRefreshing(true);
     setTimeout(() => {
-      setEvents(SAMPLE_EVENTS);
-      setDisplayedCount(6);
       setIsRefreshing(false);
     }, 1000);
   };
