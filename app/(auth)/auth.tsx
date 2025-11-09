@@ -69,7 +69,7 @@ export default function AuthScreen() {
           onboardingComplete: false,
         });
 
-        router.replace("/settings");
+        router.replace("/(settings)/index");
       } else {
         const res = await signInWithEmailAndPassword(auth, email.trim(), password);
 
@@ -80,7 +80,7 @@ export default function AuthScreen() {
 
         const snap = await getDoc(doc(db, "users", res.user.uid));
         if (snap.exists() && !snap.data().onboardingComplete) {
-          router.replace("/settings");
+          router.replace("/(settings)/index");
         } else {
           router.replace("/discover");
         }
