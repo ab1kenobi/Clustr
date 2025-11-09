@@ -10,14 +10,14 @@ import {
   Platform,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
-import { Bell, Filter, Plus, Zap } from "lucide-react-native";
+import { Bell, Filter, Plus, Zap, User } from "lucide-react-native";
 import { EventCard } from "@/components/ui/EventCard";
 import { PlatformFilters, PlatformType } from "@/components/ui/PlatformFilters";
 //import { BottomTabNavigator } from "@/components/BottomTabNavigator";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { collection, onSnapshot, query, orderBy } from "firebase/firestore";
-import { db } from "@/config/firebase"; // adjust path to your firebase.ts
+import { db, auth } from "@/config/firebase"; // adjust path to your firebase.ts
 
 
 interface Event {
@@ -32,6 +32,7 @@ interface Event {
   platform: string;
   likes: number;
   rsvps: string; 
+  tags?: string[];
 }
 
 
@@ -45,6 +46,18 @@ export default function Discover() {
   const [events, setEvents] = useState<Event[]>([]);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [displayedCount, setDisplayedCount] = useState(6);
+  const [showMyRsvps, setShowMyRsvps] = useState(false);
+  const currentUid = auth.currentUser?.uid;
+  const filteredEvents = events.filter((e) => {
+    if (showMyRsvps && currentUid) {
+      return e.rsvps?.includes(currentUid);
+    }
+    if (selectedPlatform === "all") return true;
+    return e.tags?.some(
+      (t) => t.toLowerCase() === selectedPlatform.toLowerCase()
+    );
+  });
+
 
   useEffect(() => {
     const q = query(collection(db, "events"), orderBy("createdAt", "desc"));
@@ -57,11 +70,6 @@ export default function Discover() {
     });
     return unsubscribe;
   }, []);
-  // Filter events based on selected platform
-  const filteredEvents =
-    selectedPlatform === "all"
-      ? events
-      : events.filter((e) => e.platform.toLowerCase() === selectedPlatform);
 
   const handleRefresh = () => {
     setIsRefreshing(true);
@@ -102,14 +110,7 @@ export default function Discover() {
               {/* Header Top */}
               <View style={styles.headerTop}>
                 <View>
-                  <LinearGradient
-                    colors={["#2563EB", "#9333EA"]}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 0 }}
-                    style={styles.titleGradient}
-                  >
-                    <Text style={styles.title}>Discover</Text>
-                  </LinearGradient>
+                  <Text style={styles.title}>Clustr</Text>
                   <Text style={styles.subtitle}>Find your next adventure</Text>
                 </View>
 
@@ -118,16 +119,17 @@ export default function Discover() {
                   <TouchableOpacity
                     style={styles.iconButton}
                     activeOpacity={0.7}
+                    onPress={() => setShowMyRsvps((prev) => !prev)} // toggle RSVP filter
                   >
-                    <Bell size={20} color="#6B7280" />
-                    <View style={styles.notificationDot} />
+                    <Filter size={20} color={showMyRsvps ? "#2563EB" : "#6B7280"} />
+                    {showMyRsvps && <View style={styles.notificationDot} />}
                   </TouchableOpacity>
-
                   <TouchableOpacity
                     style={styles.iconButton}
                     activeOpacity={0.7}
+                    onPress={() => router.push("/profile")} 
                   >
-                    <Filter size={20} color="#6B7280" />
+                    <User size={20} color="#6B7280" />
                   </TouchableOpacity>
 
                   <TouchableOpacity
@@ -249,9 +251,9 @@ const styles = StyleSheet.create({
     paddingBottom: 100, // Space for bottom navigator
   },
   header: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "#FFFFFF", // clean white
     borderBottomWidth: 1,
-    borderBottomColor: "#E5E7EB",
+    borderBottomColor: "#E5E7EB", // subtle gray divider
     ...Platform.select({
       ios: {
         shadowColor: "#000",
@@ -269,6 +271,7 @@ const styles = StyleSheet.create({
     marginHorizontal: "auto",
     paddingHorizontal: 16,
     paddingVertical: 16,
+    paddingTop: 50,
     width: "100%",
   },
   headerTop: {

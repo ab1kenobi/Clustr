@@ -10,7 +10,7 @@ import {
 import { ChevronLeft, ChevronRight } from "lucide-react-native";
 import { LinearGradient } from "expo-linear-gradient";
 
-export type PlatformType = "all" | "meetup" | "eventbrite" | "facebook" | "lunchclub" | "bumble";
+export type PlatformType = "all" | "Tech" | "Outdoors" | "Art" | "Food" | "Music" | "Networking" | "Education" | "Gaming" | "Fitness";
 
 interface PlatformOption {
   id: PlatformType;
@@ -32,36 +32,61 @@ const PLATFORMS: PlatformOption[] = [
     color: ["#9CA3AF", "#4B5563"],
   },
   {
-    id: "meetup",
-    label: "Meetup",
-    icon: "👥",
+    id: "Tech",
+    label: "Tech",
+    icon: "💻",
     color: ["#60A5FA", "#2563EB"],
   },
   {
-    id: "eventbrite",
-    label: "Eventbrite",
-    icon: "🎟️",
+    id: "Outdoors",
+    label: "Outdoors",
+    icon: "🌲",
     color: ["#C084FC", "#9333EA"],
   },
   {
-    id: "facebook",
-    label: "Facebook",
-    icon: "f",
+    id: "Art",
+    label: "Art",
+    icon: "🎨",
     color: ["#2563EB", "#1E40AF"],
   },
   {
-    id: "lunchclub",
-    label: "Lunchclub",
+    id: "Food",
+    label: "Food",
     icon: "🍽️",
     color: ["#FB923C", "#EA580C"],
   },
   {
-    id: "bumble",
-    label: "Bumble BFF",
-    icon: "👋",
+    id: "Music",
+    label: "Music",
+    icon: "🎵",
+    color: ["#FBBF24", "#D97706"],
+  },
+  {
+    id: "Networking",
+    label: "Networking",
+    icon: "🤝",
+    color: ["#FBBF24", "#D97706"],
+  },
+  {
+    id: "Education",
+    label: "Education",
+    icon: "📚",
+    color: ["#FBBF24", "#D97706"],
+  },
+  {
+    id: "Gaming",
+    label: "Gaming",
+    icon: "🎮",
+    color: ["#FBBF24", "#D97706"],
+  },
+  {
+    id: "Fitness",
+    label: "Fitness",
+    icon: "💪",
     color: ["#FBBF24", "#D97706"],
   },
 ];
+
 
 export function PlatformFilters({
   onFilterChange,

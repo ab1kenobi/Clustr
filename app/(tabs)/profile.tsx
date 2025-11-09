@@ -162,7 +162,7 @@ const Section = ({
 );
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#fff" },
+  container: { flex: 1, backgroundColor: "#fff", paddingTop: 60},
   header: { alignItems: "center", paddingVertical: 24 },
   avatarWrapper: { justifyContent: "center", alignItems: "center", marginBottom: 16 },
   avatar: { width: 120, height: 120, borderRadius: 60, backgroundColor: "#e5e7eb" },

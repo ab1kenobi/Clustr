@@ -191,14 +191,17 @@ export default function SettingsScreen() {
       <TouchableOpacity
         style={[
           styles.saveButton,
-          !profile.onboardingComplete &&
+          (!profile.onboardingComplete &&
             (!profile.name ||
               !profile.location ||
               !profile.age ||
-              profile.interests.length < 3) &&
-            styles.disabledButton,
+              profile.interests.length < 3))
+            ? styles.disabledButton
+            : null,
         ]}
-        onPress={handleSave}
+        onPress={() =>{
+          handleSave();
+          router.push("/profile");}}
         disabled={
           !profile.onboardingComplete &&
           (!profile.name ||
@@ -243,7 +246,7 @@ const Field = ({
 );
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#fff", padding: 20 },
+  container: { flex: 1, backgroundColor: "#fff", padding: 20, paddingTop: 50},
   title: {
     fontSize: 24,
     fontWeight: "700",
@@ -286,7 +289,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#3b82f6",
     borderRadius: 8,
     paddingVertical: 12,
-    marginTop: 20,
+    marginTop: 5,
     alignItems: "center",
   },
   disabledButton: { backgroundColor: "#ccc" },
