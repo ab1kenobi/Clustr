@@ -17,29 +17,19 @@ import Animated, {
 } from "react-native-reanimated";
 import { auth, db } from "@/config/firebase";
 import { doc, onSnapshot } from "firebase/firestore";
+import { signOut, onAuthStateChanged } from "firebase/auth";
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
 function calculateCompletion(user: any) {
-  // Count only required profile info (no email, createdAt, etc.)
-  const fields = [
-    "name",
-    "location",
-    "age",
-    "gender",
-    "bio",
-    "avatar",
-    "interests",
-  ];
-
+  const fields = ["name", "location", "age", "gender", "bio", "avatar", "interests"];
   let total = fields.length;
   let completed = 0;
 
   fields.forEach((field) => {
     const value = user[field];
-
     if (Array.isArray(value)) {
-      if (value.length >= 3) completed++; // requires at least 3 interests
+      if (value.length >= 3) completed++;
     } else if (value !== null && value !== "" && value !== 0) {
       completed++;
     }
@@ -53,14 +43,17 @@ export default function ProfileScreen() {
   const [user, setUser] = useState<any>(null);
 
   useEffect(() => {
-    const uid = auth.currentUser?.uid;
-    if (!uid) return;
+    const unsubscribe = onAuthStateChanged(auth, (userAuth) => {
+      if (!userAuth) return;
 
-    const unsub = onSnapshot(doc(db, "users", uid), (snap) => {
-      if (snap.exists()) setUser(snap.data());
+      const unsub = onSnapshot(doc(db, "users", userAuth.uid), (snap) => {
+        if (snap.exists()) setUser(snap.data());
+      });
+
+      return () => unsub();
     });
 
-    return () => unsub();
+    return () => unsubscribe();
   }, []);
 
   const progress = useSharedValue(0);
@@ -81,6 +74,11 @@ export default function ProfileScreen() {
   const animatedProps = useAnimatedProps(() => ({
     strokeDashoffset: circumference - (circumference * progress.value) / 100,
   }));
+
+  const handleSignOut = async () => {
+    await signOut(auth);
+    router.replace("/auth");
+  };
 
   if (!user) return <Text>Loading...</Text>;
 
@@ -144,6 +142,10 @@ export default function ProfileScreen() {
       >
         <Text style={styles.editText}>Edit Profile</Text>
       </TouchableOpacity>
+
+      <TouchableOpacity style={styles.editButton} onPress={handleSignOut}>
+        <Text style={styles.editText}>Sign Out</Text>
+      </TouchableOpacity>
     </ScrollView>
   );
 }
@@ -162,7 +164,7 @@ const Section = ({
 );
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#fff", paddingTop: 60},
+  container: { flex: 1, backgroundColor: "#fff", paddingTop: 60 },
   header: { alignItems: "center", paddingVertical: 24 },
   avatarWrapper: { justifyContent: "center", alignItems: "center", marginBottom: 16 },
   avatar: { width: 120, height: 120, borderRadius: 60, backgroundColor: "#e5e7eb" },
@@ -171,7 +173,7 @@ const styles = StyleSheet.create({
   location: { color: "#999", marginTop: 2 },
   ageGender: { color: "#777", marginTop: 2 },
   completionText: { marginTop: 8, fontSize: 14, fontWeight: "600", color: "#3b82f6" },
-  section: { paddingHorizontal: 20, paddingVertical: 12 },
+  section: { paddingHorizontal: 20, paddingVertical: 12, alignItems: "center" },
   sectionTitle: { fontWeight: "700", fontSize: 18, marginBottom: 6 },
   text: { lineHeight: 20, color: "#444" },
   interestsWrap: { flexDirection: "row", flexWrap: "wrap", gap: 8 },

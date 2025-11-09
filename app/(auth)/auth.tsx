@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -8,10 +8,13 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
+  AppState,
 } from "react-native";
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
+  sendEmailVerification,
+  signOut,
 } from "firebase/auth";
 import { auth, db } from "@/config/firebase";
 import { doc, setDoc, getDoc, serverTimestamp } from "firebase/firestore";
@@ -24,6 +27,17 @@ export default function AuthScreen() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
+  const [rememberMe, setRememberMe] = useState(true);
+
+  // Auto sign-out if "Remember Me" is off
+  useEffect(() => {
+    if (!rememberMe) {
+      const sub = AppState.addEventListener("change", (state) => {
+        if (state === "background") signOut(auth);
+      });
+      return () => sub.remove();
+    }
+  }, [rememberMe]);
 
   const handleSubmit = async () => {
     if (!email || !password || (mode === "signup" && !confirm)) {
@@ -38,6 +52,9 @@ export default function AuthScreen() {
     try {
       if (mode === "signup") {
         const res = await createUserWithEmailAndPassword(auth, email.trim(), password);
+
+        await sendEmailVerification(res.user);
+        Alert.alert("Verify Email", "A verification email has been sent. Please check your inbox.");
 
         await setDoc(doc(db, "users", res.user.uid), {
           email: res.user.email,
@@ -55,8 +72,13 @@ export default function AuthScreen() {
         router.replace("/settings");
       } else {
         const res = await signInWithEmailAndPassword(auth, email.trim(), password);
-        const snap = await getDoc(doc(db, "users", res.user.uid));
 
+        if (!res.user.emailVerified) {
+          Alert.alert("Email not verified", "Please verify your email before continuing.");
+          return;
+        }
+
+        const snap = await getDoc(doc(db, "users", res.user.uid));
         if (snap.exists() && !snap.data().onboardingComplete) {
           router.replace("/settings");
         } else {
@@ -66,6 +88,11 @@ export default function AuthScreen() {
     } catch (e: any) {
       Alert.alert("Auth Error", e?.code || e?.message);
     }
+  };
+
+  const handleSignOut = async () => {
+    await signOut(auth);
+    router.replace("/auth");
   };
 
   return (
@@ -106,6 +133,17 @@ export default function AuthScreen() {
             value={confirm}
             onChangeText={setConfirm}
           />
+        )}
+
+        {mode === "signin" && (
+          <TouchableOpacity
+            style={styles.rememberMe}
+            onPress={() => setRememberMe(!rememberMe)}
+          >
+            <Text style={{ color: colors.inputText }}>
+              {rememberMe ? "☑" : "☐"} Remember Me
+            </Text>
+          </TouchableOpacity>
         )}
 
         <TouchableOpacity style={styles.button} onPress={handleSubmit}>
@@ -151,6 +189,9 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     color: colors.inputText,
     fontSize: 16,
+  },
+  rememberMe: {
+    marginBottom: 12,
   },
   button: {
     backgroundColor: colors.primary,
