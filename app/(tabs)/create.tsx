@@ -17,7 +17,7 @@ import Icon from "react-native-vector-icons/Feather";
 import * as ImagePicker from "expo-image-picker";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { addDoc, collection, serverTimestamp } from "firebase/firestore";
-import { db, storage } from "@/config/firebase";
+import { db, storage, auth } from "@/config/firebase";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { colors, spacing } from "@/styles/theme";
 
@@ -66,6 +66,7 @@ export default function CreateMeetup() {
     setLoading(true);
     await addDoc(collection(db, "events"), {
       ...formData,
+      creatorId: auth.currentUser?.uid,
       attendees: 0,
       likes: 0,
       createdAt: serverTimestamp(),
