@@ -69,6 +69,11 @@ export default function TabLayout() {
             ),
           }}
         />
+        <Tabs.Screen name="create" options={{ href: null }} />
+        <Tabs.Screen name="choose" options={{ href: null }} />
+        <Tabs.Screen name="explore" options={{ href: null }} />
+        <Tabs.Screen name="settings" options={{ href: null }} />
+        <Tabs.Screen name="meetup/[id]" options={{ href: null }} />
       </Tabs>
     </View>
   );
