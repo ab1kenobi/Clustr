@@ -21,7 +21,8 @@ export default function TabLayout() {
 
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (!user) {
-        router.replace('/auth');
+        // Redirect to auth screen
+        router.replace('/(auth)/auth');
       } else {
         setIsSignedIn(true);
       }
@@ -39,7 +40,10 @@ export default function TabLayout() {
     );
   }
 
-  if (!isSignedIn) return null;
+  if (!isSignedIn) {
+    // Return null while redirecting
+    return null;
+  }
 
   return (
     <View style={{ flex: 1 }}>

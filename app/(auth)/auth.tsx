@@ -1,25 +1,23 @@
-import React, { useState, useEffect } from "react";
+import { auth, db } from "@/config/firebase";
+import { colors } from "@/styles/theme";
+import { useRouter } from "expo-router";
 import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
+  createUserWithEmailAndPassword,
+  sendEmailVerification,
+  signInWithEmailAndPassword,
+} from "firebase/auth";
+import { doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
+import { useState } from "react";
+import {
   Alert,
   KeyboardAvoidingView,
   Platform,
-  AppState,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
-import {
-  createUserWithEmailAndPassword,
-  signInWithEmailAndPassword,
-  sendEmailVerification,
-  signOut,
-} from "firebase/auth";
-import { auth, db } from "@/config/firebase";
-import { doc, setDoc, getDoc, serverTimestamp } from "firebase/firestore";
-import { useRouter } from "expo-router";
-import { colors } from "@/styles/theme";
 
 export default function AuthScreen() {
   const router = useRouter();
@@ -27,17 +25,6 @@ export default function AuthScreen() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
-  const [rememberMe, setRememberMe] = useState(true);
-
-  // Auto sign-out if "Remember Me" is off
-  useEffect(() => {
-    if (!rememberMe) {
-      const sub = AppState.addEventListener("change", (state) => {
-        if (state === "background") signOut(auth);
-      });
-      return () => sub.remove();
-    }
-  }, [rememberMe]);
 
   const handleSubmit = async () => {
     if (!email || !password || (mode === "signup" && !confirm)) {
@@ -69,7 +56,8 @@ export default function AuthScreen() {
           onboardingComplete: false,
         });
 
-        router.replace("/(settings)/index");
+        // @ts-ignore - Setup route exists but not in typed routes yet
+        (router.replace as any)("/(setup)/index");
       } else {
         const res = await signInWithEmailAndPassword(auth, email.trim(), password);
 
@@ -80,19 +68,15 @@ export default function AuthScreen() {
 
         const snap = await getDoc(doc(db, "users", res.user.uid));
         if (snap.exists() && !snap.data().onboardingComplete) {
-          router.replace("/(settings)/index");
+          // @ts-ignore - Setup route exists but not in typed routes yet
+          router.replace("/(setup)/index");
         } else {
-          router.replace("/discover");
+          router.replace("/(tabs)/discover");
         }
       }
     } catch (e: any) {
       Alert.alert("Auth Error", e?.code || e?.message);
     }
-  };
-
-  const handleSignOut = async () => {
-    await signOut(auth);
-    router.replace("/auth");
   };
 
   return (
@@ -133,17 +117,6 @@ export default function AuthScreen() {
             value={confirm}
             onChangeText={setConfirm}
           />
-        )}
-
-        {mode === "signin" && (
-          <TouchableOpacity
-            style={styles.rememberMe}
-            onPress={() => setRememberMe(!rememberMe)}
-          >
-            <Text style={{ color: colors.inputText }}>
-              {rememberMe ? "☑" : "☐"} Remember Me
-            </Text>
-          </TouchableOpacity>
         )}
 
         <TouchableOpacity style={styles.button} onPress={handleSubmit}>
@@ -189,9 +162,6 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     color: colors.inputText,
     fontSize: 16,
-  },
-  rememberMe: {
-    marginBottom: 12,
   },
   button: {
     backgroundColor: colors.primary,
