@@ -28,6 +28,25 @@ import { db, storage, auth } from "@/config/firebase";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { colors, spacing } from "@/styles/theme";
 
+function parseEventDateTime(dateStr: string, timeStr: string) {
+  try {
+    // dateStr is like "2025-11-20"
+    // timeStr is like "7:30 PM"
+    const [time, modifier] = timeStr.split(" ");
+    let [hours, minutes] = time.split(":").map(Number);
+
+    if (modifier === "PM" && hours < 12) hours += 12;
+    if (modifier === "AM" && hours === 12) hours = 0;
+
+    const eventDate = new Date(dateStr);
+    eventDate.setHours(hours, minutes, 0, 0);
+    return eventDate;
+  } catch {
+    return null;
+  }
+}
+
+
 export default function CreateMeetup() {
   const router = useRouter();
   const { id } = useLocalSearchParams(); // if present, we're editing
@@ -102,6 +121,19 @@ export default function CreateMeetup() {
   };
 
   const handleSubmit = async () => {
+    const eventDateTime = parseEventDateTime(formData.date, formData.time);
+    const now = new Date();
+
+    if (!eventDateTime) {
+      alert("Invalid date or time format.");
+      return;
+    }
+
+    if (eventDateTime < now) {
+      alert("You cannot create a meetup in the past.");
+      return;
+    }
+
     if (!formData.title || !formData.description || !formData.date || !formData.time || !formData.location) {
       alert("Please fill all required fields.");
       return;

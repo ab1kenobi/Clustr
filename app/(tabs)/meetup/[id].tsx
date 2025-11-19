@@ -7,9 +7,10 @@ import {
   ActivityIndicator,
   ScrollView,
   TouchableOpacity,
+  Alert,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { doc, getDoc, updateDoc, arrayUnion, arrayRemove } from "firebase/firestore";
+import { doc, getDoc, updateDoc, arrayUnion, arrayRemove, deleteDoc } from "firebase/firestore";
 import Icon from "react-native-vector-icons/Feather";
 import { db, auth } from "@/config/firebase";
 
@@ -20,7 +21,6 @@ export default function MeetupDetail() {
   const [attendees, setAttendees] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Load event
   useEffect(() => {
     if (!id) return;
     const fetchEvent = async () => {
@@ -39,7 +39,6 @@ export default function MeetupDetail() {
     fetchEvent();
   }, [id]);
 
-  // Load attendees profiles
   useEffect(() => {
     const loadAttendees = async () => {
       if (!event?.rsvps) return;
@@ -61,17 +60,13 @@ export default function MeetupDetail() {
     const alreadyRSVPd = event?.rsvps?.includes(uid);
     try {
       if (alreadyRSVPd) {
-        await updateDoc(doc(db, "events", id), {
-          rsvps: arrayRemove(uid),
-        });
+        await updateDoc(doc(db, "events", id), { rsvps: arrayRemove(uid) });
         setEvent((prev: any) => ({
           ...prev,
           rsvps: prev.rsvps.filter((u: string) => u !== uid),
         }));
       } else {
-        await updateDoc(doc(db, "events", id), {
-          rsvps: arrayUnion(uid),
-        });
+        await updateDoc(doc(db, "events", id), { rsvps: arrayUnion(uid) });
         setEvent((prev: any) => ({
           ...prev,
           rsvps: [...(prev?.rsvps || []), uid],
@@ -80,6 +75,24 @@ export default function MeetupDetail() {
     } catch (err) {
       console.error("Error updating RSVP:", err);
     }
+  };
+
+  const handleDelete = async () => {
+    Alert.alert("Delete Meetup", "Are you sure you want to delete this meetup?", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Delete",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            await deleteDoc(doc(db, "events", id));
+            router.replace("/discover");
+          } catch (err) {
+            console.error("Error deleting meetup:", err);
+          }
+        },
+      },
+    ]);
   };
 
   if (loading) {
@@ -110,13 +123,19 @@ export default function MeetupDetail() {
           <Icon name="arrow-left" size={24} color="#666" />
         </TouchableOpacity>
         {isCreator && (
-          <TouchableOpacity
-            style={styles.editButton}
-            onPress={() => router.push(`/create?id=${event.id}`)}
-          >
-            <Icon name="edit" size={20} color="#fff" />
-            <Text style={styles.editText}>Edit</Text>
-          </TouchableOpacity>
+          <View style={{ flexDirection: "row", gap: 12 }}>
+            <TouchableOpacity
+              style={styles.editButton}
+              onPress={() => router.push(`/create?id=${event.id}`)}
+            >
+              <Icon name="edit" size={20} color="#fff" />
+              <Text style={styles.editText}>Edit</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.deleteButton} onPress={handleDelete}>
+              <Icon name="trash" size={20} color="#fff" />
+              <Text style={styles.deleteText}>Delete</Text>
+            </TouchableOpacity>
+          </View>
         )}
       </View>
 
@@ -215,7 +234,7 @@ const styles = StyleSheet.create({
   header: { flexDirection: "row", alignItems: "center", marginBottom: 20 },
   backButton: { padding: 8 },
   headerTitle: { fontSize: 24, fontWeight: "bold", marginLeft: 12 },
-    editButton: {
+  editButton: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#10B981",
@@ -224,4 +243,13 @@ const styles = StyleSheet.create({
     borderRadius: 6,
   },
   editText: { color: "#fff", marginLeft: 6, fontWeight: "600" },
+  deleteButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#b91010ff",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 6,
+  },
+  deleteText: { color: "#fff", marginLeft: 6, fontWeight: "600" },
 });

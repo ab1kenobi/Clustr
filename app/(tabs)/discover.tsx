@@ -38,6 +38,24 @@ interface Event {
 
 const { width } = Dimensions.get("window");
 const isTablet = width >= 768;
+function parseEventDateTime(dateStr: string, timeStr: string) {
+  try {
+    // dateStr is like "2025-11-20"
+    // timeStr is like "7:30 PM"
+    const [time, modifier] = timeStr.split(" ");
+    let [hours, minutes] = time.split(":").map(Number);
+
+    if (modifier === "PM" && hours < 12) hours += 12;
+    if (modifier === "AM" && hours === 12) hours = 0;
+
+    const eventDate = new Date(dateStr);
+    eventDate.setHours(hours, minutes, 0, 0);
+    return eventDate;
+  } catch {
+    return null;
+  }
+}
+
 
 export default function Discover() {
   const navigation = useNavigation();
@@ -62,14 +80,24 @@ export default function Discover() {
   useEffect(() => {
     const q = query(collection(db, "events"), orderBy("createdAt", "desc"));
     const unsubscribe = onSnapshot(q, (snapshot) => {
+      const now = new Date();
+
       const data = snapshot.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),
       })) as Event[];
-      setEvents(data);
+
+      const upcoming = data.filter((e) => {
+        if (!e.date || !e.time) return true; // keep if missing fields
+        const eventDateTime = parseEventDateTime(e.date, e.time);
+        return eventDateTime ? eventDateTime >= now : true;
+      });
+
+      setEvents(upcoming);
     });
     return unsubscribe;
   }, []);
+
 
   const handleRefresh = () => {
     setIsRefreshing(true);
