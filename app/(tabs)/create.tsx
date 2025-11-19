@@ -1,5 +1,5 @@
-import { useRouter } from "expo-router";
-import { useState } from "react";
+import { useRouter, useLocalSearchParams } from "expo-router";
+import { useEffect, useState } from "react";
 import "react-native-get-random-values";
 import {
   View,
@@ -16,16 +16,24 @@ import {
 import Icon from "react-native-vector-icons/Feather";
 import * as ImagePicker from "expo-image-picker";
 import DateTimePicker from "@react-native-community/datetimepicker";
-import { addDoc, collection, serverTimestamp } from "firebase/firestore";
+import {
+  addDoc,
+  collection,
+  doc,
+  getDoc,
+  updateDoc,
+  serverTimestamp,
+} from "firebase/firestore";
 import { db, storage, auth } from "@/config/firebase";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { colors, spacing } from "@/styles/theme";
 
 export default function CreateMeetup() {
   const router = useRouter();
+  const { id } = useLocalSearchParams(); // if present, we're editing
   const [loading, setLoading] = useState(false);
 
-  const [formData, setFormData] = useState({
+  const initialFormState = {
     title: "",
     description: "",
     date: "",
@@ -34,10 +42,46 @@ export default function CreateMeetup() {
     tags: [] as string[],
     visibility: "public",
     image: null as string | null,
-  });
+  };
+
+  const [formData, setFormData] = useState(initialFormState);
 
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
+
+  // Reset form when switching to create mode
+  useEffect(() => {
+    if (!id) {
+      setFormData(initialFormState);
+    }
+  }, [id]);
+
+  // Load existing meetup if editing
+  useEffect(() => {
+    const loadMeetup = async () => {
+      if (!id) return;
+      const snap = await getDoc(doc(db, "events", id as string));
+      if (snap.exists()) {
+        const data = snap.data();
+        if (data.creatorId !== auth.currentUser?.uid) {
+          alert("You are not allowed to edit this meetup.");
+          router.replace("/discover");
+          return;
+        }
+        setFormData({
+          title: data.title || "",
+          description: data.description || "",
+          date: data.date || "",
+          time: data.time || "",
+          location: data.location || "",
+          tags: data.tags || [],
+          visibility: data.visibility || "public",
+          image: data.image || null,
+        });
+      }
+    };
+    loadMeetup();
+  }, [id]);
 
   const handleChange = (name: string, value: any) =>
     setFormData((prev) => ({ ...prev, [name]: value }));
@@ -64,13 +108,24 @@ export default function CreateMeetup() {
     }
 
     setLoading(true);
-    await addDoc(collection(db, "events"), {
-      ...formData,
-      creatorId: auth.currentUser?.uid,
-      attendees: 0,
-      likes: 0,
-      createdAt: serverTimestamp(),
-    });
+
+    if (id) {
+      await updateDoc(doc(db, "events", id as string), {
+        ...formData,
+        updatedAt: serverTimestamp(),
+      });
+    } else {
+      await addDoc(collection(db, "events"), {
+        ...formData,
+        creatorId: auth.currentUser?.uid,
+        attendees: 0,
+        likes: 0,
+        createdAt: serverTimestamp(),
+      });
+      // ✅ Clear form after creating
+      setFormData(initialFormState);
+    }
+
     setLoading(false);
     router.replace("/discover");
   };
@@ -88,12 +143,11 @@ export default function CreateMeetup() {
   return (
     <KeyboardAvoidingView style={styles.wrapper} behavior={Platform.OS === "ios" ? "padding" : undefined}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
-
         <View style={styles.header}>
           <TouchableOpacity onPress={() => router.replace("/discover")} style={styles.backButton}>
             <Icon name="arrow-left" size={24} color="#666" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Create Meetup</Text>
+          <Text style={styles.headerTitle}>{id ? "Edit Meetup" : "Create Meetup"}</Text>
         </View>
 
         <TouchableOpacity style={styles.imageButton} onPress={handleImageUpload}>
@@ -128,7 +182,6 @@ export default function CreateMeetup() {
           multiline
         />
 
-        {/* Date */}
         <TouchableOpacity style={styles.input} onPress={() => setShowDatePicker(true)}>
           <Text style={formData.date ? styles.inputText : styles.placeholderText}>
             {formData.date || "Select Date"}
@@ -146,7 +199,6 @@ export default function CreateMeetup() {
           />
         )}
 
-        {/* Time */}
         <TouchableOpacity style={styles.input} onPress={() => setShowTimePicker(true)}>
           <Text style={formData.time ? styles.inputText : styles.placeholderText}>
             {formData.time || "Select Time"}
@@ -193,6 +245,8 @@ export default function CreateMeetup() {
           ))}
         </View>
 
+        {/* Visibility radio group commented out for now */}
+        {/*
         <View style={styles.radioGroup}>
           {["public", "private"].map((option) => (
             <TouchableOpacity key={option} style={styles.radioOption} onPress={() => handleChange("visibility", option)}>
@@ -205,10 +259,10 @@ export default function CreateMeetup() {
             </TouchableOpacity>
           ))}
         </View>
+        */}
       </ScrollView>
-
       <TouchableOpacity style={[styles.submitButton, loading && styles.disabledButton]} disabled={loading} onPress={handleSubmit}>
-        {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.submitText}>Publish Meetup</Text>}
+        {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.submitText}>{id ? "Save Changes" : "Publish Meetup"}</Text>}
       </TouchableOpacity>
     </KeyboardAvoidingView>
   );

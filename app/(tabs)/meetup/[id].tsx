@@ -55,13 +55,12 @@ export default function MeetupDetail() {
   }, [event?.rsvps]);
 
   const handleRSVP = async () => {
-  const uid = auth.currentUser?.uid;
-  if (!uid || !id) return;
+    const uid = auth.currentUser?.uid;
+    if (!uid || !id) return;
 
-  const alreadyRSVPd = event?.rsvps?.includes(uid);
+    const alreadyRSVPd = event?.rsvps?.includes(uid);
     try {
       if (alreadyRSVPd) {
-        // User already RSVP’d → remove them (un‑RSVP)
         await updateDoc(doc(db, "events", id), {
           rsvps: arrayRemove(uid),
         });
@@ -70,7 +69,6 @@ export default function MeetupDetail() {
           rsvps: prev.rsvps.filter((u: string) => u !== uid),
         }));
       } else {
-        // User not RSVP’d yet → add them
         await updateDoc(doc(db, "events", id), {
           rsvps: arrayUnion(uid),
         });
@@ -103,13 +101,25 @@ export default function MeetupDetail() {
     );
   }
 
+  const isCreator = auth.currentUser?.uid === event.creatorId;
+
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.replace("/discover")} style={styles.backButton}>
           <Icon name="arrow-left" size={24} color="#666" />
         </TouchableOpacity>
+        {isCreator && (
+          <TouchableOpacity
+            style={styles.editButton}
+            onPress={() => router.push(`/create?id=${event.id}`)}
+          >
+            <Icon name="edit" size={20} color="#fff" />
+            <Text style={styles.editText}>Edit</Text>
+          </TouchableOpacity>
+        )}
       </View>
+
       {event.image && <Image source={{ uri: event.image }} style={styles.image} />}
       <Text style={styles.title}>{event.title}</Text>
       <Text style={styles.subtitle}>{event.location}</Text>
@@ -118,7 +128,6 @@ export default function MeetupDetail() {
 
       <Text style={styles.sectionTitle}>About</Text>
       <Text style={styles.description}>{event.description}</Text>
-
 
       {event.tags?.length > 0 && (
         <>
@@ -151,7 +160,9 @@ export default function MeetupDetail() {
       </View>
 
       <TouchableOpacity style={styles.rsvpButton} onPress={handleRSVP}>
-        <Text style={styles.rsvpText}>{event?.rsvps?.includes(auth.currentUser?.uid) ? "Cancel RSVP" : "RSVP"}</Text>
+        <Text style={styles.rsvpText}>
+          {event?.rsvps?.includes(auth.currentUser?.uid) ? "Cancel RSVP" : "RSVP"}
+        </Text>
       </TouchableOpacity>
     </ScrollView>
   );
@@ -204,4 +215,13 @@ const styles = StyleSheet.create({
   header: { flexDirection: "row", alignItems: "center", marginBottom: 20 },
   backButton: { padding: 8 },
   headerTitle: { fontSize: 24, fontWeight: "bold", marginLeft: 12 },
+    editButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#10B981",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 6,
+  },
+  editText: { color: "#fff", marginLeft: 6, fontWeight: "600" },
 });
