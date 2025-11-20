@@ -139,7 +139,7 @@ export default function Discover() {
               <View style={styles.headerTop}>
                 <View>
                   <Text style={styles.title}>Clustr</Text>
-                  <Text style={styles.subtitle}>Find your next adventure</Text>
+                  <Text style={styles.subtitle}>Join Your Clustr!</Text>
                 </View>
 
                 {/* Header Actions */}
@@ -268,178 +268,214 @@ export default function Discover() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: "#F5F6FA",
   },
+
   gradient: {
     flex: 1,
   },
+
   scrollView: {
     flex: 1,
   },
+
   scrollContent: {
-    paddingBottom: 100, // Space for bottom navigator
+    paddingBottom: 80,
   },
+
+  // HEADER
   header: {
-    backgroundColor: "#FFFFFF", // clean white
-    borderBottomWidth: 1,
-    borderBottomColor: "#E5E7EB", // subtle gray divider
+    backgroundColor: "#FFFFFF",
+    borderBottomWidth: 0,
     ...Platform.select({
       ios: {
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.05,
-        shadowRadius: 3,
+        shadowColor: "#000000",
+        shadowOpacity: 0.08,
+        shadowOffset: { width: 0, height: 4 },
+        shadowRadius: 10,
       },
       android: {
-        elevation: 2,
+        elevation: 6,
       },
     }),
   },
+
   headerContent: {
-    maxWidth: 672, // 2xl equivalent
+    maxWidth: 680,
     marginHorizontal: "auto",
     paddingHorizontal: 16,
-    paddingVertical: 16,
-    paddingTop: 50,
+    paddingTop: 32,
+    paddingBottom: 16,
     width: "100%",
   },
+
   headerTop: {
     flexDirection: "row",
-    alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: 16,
+    alignItems: "center",
+    marginBottom: 12,
   },
-  titleGradient: {
-    alignSelf: "flex-start",
-  },
+
   title: {
     fontSize: 30,
-    fontWeight: "bold",
-    color: "transparent",
+    fontWeight: "800",
+    color: "#1A1A1A",
   },
+
   subtitle: {
     fontSize: 14,
-    color: "#6B7280",
-    marginTop: 2,
+    color: "#585858",
+    marginTop: 4,
   },
+
+  // HEADER ACTION BUTTONS
   headerActions: {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
   },
+
   iconButton: {
-    padding: 10,
-    backgroundColor: "#FFFFFF",
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
+    padding: 8,
+    backgroundColor: "#EFEFF3",
     borderRadius: 8,
-    position: "relative",
+    borderWidth: 1,
+    borderColor: "#D7D7DB",
   },
+
   notificationDot: {
     position: "absolute",
     top: 4,
     right: 4,
-    width: 8,
-    height: 8,
-    backgroundColor: "#EF4444",
+    width: 7,
+    height: 7,
+    backgroundColor: "#E44545",
     borderRadius: 4,
   },
+
   createButton: {
     borderRadius: 8,
     overflow: "hidden",
   },
+
   createButtonGradient: {
-    padding: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
   },
+
+  // REFRESH INDICATOR
   refreshIndicator: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
-    marginBottom: 12,
+    gap: 6,
+    marginTop: 6,
   },
+
   refreshText: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: "500",
-    color: "#3B82F6",
+    color: "#3D63DD",
   },
+
+  // MAIN CONTENT
   mainContent: {
-    maxWidth: 672,
+    maxWidth: 680,
     marginHorizontal: "auto",
     paddingHorizontal: 16,
-    paddingVertical: 24,
+    paddingVertical: 20,
     width: "100%",
   },
+
+  // EMPTY STATE
   emptyState: {
     alignItems: "center",
-    paddingVertical: 48,
+    paddingVertical: 40,
   },
+
   emptyEmoji: {
-    fontSize: 48,
-    marginBottom: 12,
+    fontSize: 50,
+    marginBottom: 10,
   },
+
   emptyTitle: {
-    fontSize: 18,
+    fontSize: 19,
     fontWeight: "600",
-    color: "#111827",
-    marginBottom: 8,
+    color: "#1A1A1A",
+    marginBottom: 4,
   },
+
   emptyDescription: {
-    fontSize: 16,
-    color: "#6B7280",
+    fontSize: 15,
+    color: "#6A6A6A",
     textAlign: "center",
-    marginBottom: 16,
+    marginBottom: 12,
+    maxWidth: 300,
+    lineHeight: 20,
   },
+
   emptyButton: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: "600",
-    color: "#3B82F6",
+    color: "#3D63DD",
   },
+
+  // EVENT GRID
   eventsGrid: {
     gap: 16,
   },
+
   eventsGridTablet: {
     flexDirection: "row",
     flexWrap: "wrap",
+    justifyContent: "space-between",
   },
+
   eventCardWrapper: {
     width: "100%",
   },
+
   eventCardWrapperTablet: {
     width: "48%",
   },
+
+  // LOAD MORE
   loadMoreContainer: {
-    paddingTop: 16,
+    marginTop: 20,
     alignItems: "center",
   },
+
   loadMoreButton: {
-    paddingHorizontal: 32,
     paddingVertical: 12,
+    paddingHorizontal: 26,
     backgroundColor: "#FFFFFF",
-    borderWidth: 2,
-    borderColor: "#3B82F6",
     borderRadius: 8,
+    borderWidth: 1.8,
+    borderColor: "#3D63DD",
   },
+
   loadMoreText: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: "600",
-    color: "#3B82F6",
+    color: "#3D63DD",
   },
+
+  // END OF RESULTS
   endOfResults: {
     alignItems: "center",
-    paddingVertical: 32,
+    paddingVertical: 28,
   },
+
   endOfResultsTitle: {
-    fontSize: 16,
-    fontWeight: "500",
-    color: "#6B7280",
-    textAlign: "center",
+    fontSize: 15,
+    color: "#777",
   },
+
   endOfResultsSubtitle: {
-    fontSize: 14,
-    color: "#9CA3AF",
+    fontSize: 13,
+    color: "#9A9A9A",
     marginTop: 4,
-    textAlign: "center",
   },
 });
+

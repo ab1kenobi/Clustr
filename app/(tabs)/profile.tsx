@@ -15,6 +15,7 @@ import Animated, {
   useAnimatedProps,
   Easing,
 } from "react-native-reanimated";
+import Icon from "react-native-vector-icons/Feather";
 import { auth, db } from "@/config/firebase";
 import { doc, onSnapshot } from "firebase/firestore";
 import { signOut, onAuthStateChanged } from "firebase/auth";
@@ -85,6 +86,12 @@ export default function ProfileScreen() {
   return (
     <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 100 }}>
       <View style={styles.header}>
+        <View style={styles.backWrapper}>
+          <TouchableOpacity onPress={() => router.replace("/discover")} style={styles.backButton}>
+            <Icon name="arrow-left" size={24} color="#666" />
+          </TouchableOpacity>
+        </View>
+
         <View style={styles.avatarWrapper}>
           <View style={{ position: "absolute" }}>
             <Svg width={radius * 2 + 10} height={radius * 2 + 10}>
@@ -166,6 +173,17 @@ const Section = ({
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#fff", paddingTop: 60 },
   header: { alignItems: "center", paddingVertical: 24 },
+  backWrapper: {
+    position: "absolute",
+    top: 20,
+    left: 20,
+    zIndex: 10,
+  },
+  backButton: {
+    padding: 8,
+    backgroundColor: "#F3F4F6",
+    borderRadius: 8,
+  },
   avatarWrapper: { justifyContent: "center", alignItems: "center", marginBottom: 16 },
   avatar: { width: 120, height: 120, borderRadius: 60, backgroundColor: "#e5e7eb" },
   name: { fontSize: 24, fontWeight: "700" },
