@@ -34,7 +34,6 @@ function parseEventDateTime(dateStr: string, timeStr: string) {
     // timeStr is like "7:30 PM"
     const [time, modifier] = timeStr.split(" ");
     let [hours, minutes] = time.split(":").map(Number);
-
     if (modifier === "PM" && hours < 12) hours += 12;
     if (modifier === "AM" && hours === 12) hours = 0;
 
@@ -45,7 +44,6 @@ function parseEventDateTime(dateStr: string, timeStr: string) {
     return null;
   }
 }
-
 
 export default function CreateMeetup() {
   const router = useRouter();
@@ -64,9 +62,12 @@ export default function CreateMeetup() {
   };
 
   const [formData, setFormData] = useState(initialFormState);
-
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
+
+  // Get today's date at midnight for comparison
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
 
   // Reset form when switching to create mode
   useEffect(() => {
@@ -110,6 +111,7 @@ export default function CreateMeetup() {
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       quality: 0.8,
     });
+
     if (result.canceled || !result.assets.length) return;
 
     const asset = result.assets[0];
@@ -173,16 +175,19 @@ export default function CreateMeetup() {
   const tags = ["Tech", "Outdoors", "Art", "Food", "Music", "Networking", "Education", "Gaming", "Fitness"];
 
   return (
-    <KeyboardAvoidingView style={styles.wrapper} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+    <KeyboardAvoidingView
+      style={styles.wrapper}
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+    >
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.header}>
           <TouchableOpacity onPress={() => router.replace("/discover")} style={styles.backButton}>
-            <Icon name="arrow-left" size={24} color="#666" />
+            <Icon name="arrow-left" size={24} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>{id ? "Edit Meetup" : "Create Meetup"}</Text>
         </View>
 
-        <TouchableOpacity style={styles.imageButton} onPress={handleImageUpload}>
+        <TouchableOpacity onPress={handleImageUpload} style={styles.imageButton}>
           <Icon name="image" size={20} color={colors.primary} />
           <Text style={styles.uploadText}>Upload Meetup Image</Text>
         </TouchableOpacity>
@@ -191,14 +196,14 @@ export default function CreateMeetup() {
           <>
             <Image source={{ uri: formData.image }} style={styles.previewImage} />
             <TouchableOpacity onPress={() => handleChange("image", null)} style={styles.removeImageButton}>
-              <Icon name="x-circle" size={18} color="#d00" />
+              <Icon name="x" size={20} color="#d00" />
               <Text style={styles.removeImageText}>Remove Image</Text>
             </TouchableOpacity>
           </>
         )}
 
         <TextInput
-          style={styles.input}
+          style={[styles.input, styles.inputText]}
           placeholder="Meetup Title"
           placeholderTextColor={colors.placeholder}
           value={formData.title}
@@ -206,7 +211,7 @@ export default function CreateMeetup() {
         />
 
         <TextInput
-          style={[styles.input, styles.textArea]}
+          style={[styles.input, styles.textArea, styles.inputText]}
           placeholder="Description"
           placeholderTextColor={colors.placeholder}
           value={formData.description}
@@ -219,12 +224,14 @@ export default function CreateMeetup() {
             {formData.date || "Select Date"}
           </Text>
         </TouchableOpacity>
+
         {showDatePicker && (
           <DateTimePicker
             value={formData.date ? new Date(formData.date) : new Date()}
             mode="date"
-            display="inline"
-            onChange={(e, date) => {
+            display="default"
+            minimumDate={today}
+            onChange={(event, date) => {
               setShowDatePicker(false);
               if (date) handleChange("date", date.toISOString().split("T")[0]);
             }}
@@ -236,12 +243,13 @@ export default function CreateMeetup() {
             {formData.time || "Select Time"}
           </Text>
         </TouchableOpacity>
+
         {showTimePicker && (
           <DateTimePicker
             value={new Date()}
             mode="time"
-            display="spinner"
-            onChange={(e, date) => {
+            display="default"
+            onChange={(event, date) => {
               setShowTimePicker(false);
               if (date) handleChange("time", formatTime(date));
             }}
@@ -249,7 +257,7 @@ export default function CreateMeetup() {
         )}
 
         <TextInput
-          style={styles.input}
+          style={[styles.input, styles.inputText]}
           placeholder="Location"
           placeholderTextColor={colors.placeholder}
           value={formData.location}
@@ -263,38 +271,44 @@ export default function CreateMeetup() {
               key={tag}
               style={[styles.tag, formData.tags.includes(tag) && styles.tagSelected]}
               onPress={() =>
-                handleChange("tags",
-                  formData.tags.includes(tag)
-                    ? formData.tags.filter((t) => t !== tag)
-                    : [...formData.tags, tag]
-                )
+                handleChange("tags", formData.tags.includes(tag) ? formData.tags.filter((t) => t !== tag) : [...formData.tags, tag])
               }
             >
-              <Text style={[styles.tagText, formData.tags.includes(tag) && styles.tagTextSelected]}>
-                {tag}
-              </Text>
+              <Text style={[styles.tagText, formData.tags.includes(tag) && styles.tagTextSelected]}>{tag}</Text>
             </TouchableOpacity>
           ))}
         </View>
 
         {/* Visibility radio group commented out for now */}
-        {/*
+        {/* <Text style={styles.subtitle}>Visibility</Text>
         <View style={styles.radioGroup}>
           {["public", "private"].map((option) => (
-            <TouchableOpacity key={option} style={styles.radioOption} onPress={() => handleChange("visibility", option)}>
+            <TouchableOpacity
+              key={option}
+              style={styles.radioOption}
+              onPress={() => handleChange("visibility", option)}
+            >
               <Icon
                 name={formData.visibility === option ? "check-circle" : "circle"}
                 size={20}
-                color={formData.visibility === option ? colors.primary : "#bbb"}
+                color={colors.primary}
               />
               <Text style={styles.radioLabel}>{option === "public" ? "Public" : "Private"}</Text>
             </TouchableOpacity>
           ))}
-        </View>
-        */}
+        </View> */}
       </ScrollView>
-      <TouchableOpacity style={[styles.submitButton, loading && styles.disabledButton]} disabled={loading} onPress={handleSubmit}>
-        {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.submitText}>{id ? "Save Changes" : "Publish Meetup"}</Text>}
+
+      <TouchableOpacity
+        style={[styles.submitButton, loading && styles.disabledButton]}
+        onPress={handleSubmit}
+        disabled={loading}
+      >
+        {loading ? (
+          <ActivityIndicator color="#fff" />
+        ) : (
+          <Text style={styles.submitText}>{id ? "Save Changes" : "Publish Meetup"}</Text>
+        )}
       </TouchableOpacity>
     </KeyboardAvoidingView>
   );
@@ -303,11 +317,9 @@ export default function CreateMeetup() {
 const styles = StyleSheet.create({
   wrapper: { flex: 1, backgroundColor: colors.background },
   scrollContent: { padding: spacing.screen, paddingBottom: 120 },
-
   header: { flexDirection: "row", alignItems: "center", marginBottom: 20 },
   backButton: { padding: 8 },
   headerTitle: { fontSize: 24, fontWeight: "bold", marginLeft: 12 },
-
   input: {
     borderWidth: 1,
     borderColor: colors.inputBorder,
@@ -317,20 +329,15 @@ const styles = StyleSheet.create({
     marginBottom: spacing.fieldGap,
   },
   textArea: { height: 100, textAlignVertical: "top" },
-
   placeholderText: { color: colors.placeholder },
   inputText: { color: colors.inputText },
-
   imageButton: { flexDirection: "row", alignItems: "center", marginBottom: 12 },
   uploadText: { marginLeft: 8, color: colors.primary, fontWeight: "600" },
-
   previewImage: { width: "100%", height: 200, borderRadius: spacing.radius, marginBottom: 8 },
   removeImageButton: { flexDirection: "row", alignItems: "center", marginBottom: 12 },
   removeImageText: { marginLeft: 6, color: "#d00" },
-
   subtitle: { fontSize: 18, fontWeight: "600", marginVertical: 12 },
   grid: { flexDirection: "row", flexWrap: "wrap", justifyContent: "center" },
-
   tag: {
     borderWidth: 1,
     borderRadius: 20,
@@ -343,12 +350,19 @@ const styles = StyleSheet.create({
   tagSelected: { backgroundColor: colors.primaryLight, borderColor: colors.primary },
   tagText: { color: "#333" },
   tagTextSelected: { color: colors.primary },
-
   radioGroup: { marginTop: 8 },
   radioOption: { flexDirection: "row", alignItems: "center", paddingVertical: 6 },
   radioLabel: { marginLeft: 8, fontSize: 16, color: colors.inputText },
-
-  submitButton: { position: "absolute", bottom: 20, left: 20, right: 20, backgroundColor: colors.primary, padding: 14, borderRadius: spacing.radius, alignItems: "center" },
+  submitButton: {
+    position: "absolute",
+    bottom: 20,
+    left: 20,
+    right: 20,
+    backgroundColor: colors.primary,
+    padding: 14,
+    borderRadius: spacing.radius,
+    alignItems: "center",
+  },
   disabledButton: { backgroundColor: "#9cc5ff" },
   submitText: { color: "#fff", fontSize: 16, fontWeight: "600" },
 });
