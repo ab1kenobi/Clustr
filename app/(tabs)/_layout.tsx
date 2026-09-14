@@ -17,7 +17,7 @@ export default function TabLayout() {
   const [isSignedIn, setIsSignedIn] = useState(false);
 
   useEffect(() => {
-    SystemUI.setBackgroundColorAsync('transparent');
+    SystemUI.setBackgroundColorAsync(Colors[colorScheme ?? 'light'].background);
 
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (!user) {
@@ -30,7 +30,7 @@ export default function TabLayout() {
     });
 
     return unsubscribe;
-  }, []);
+  }, [colorScheme, router]);
 
   if (checkingAuth) {
     return (
@@ -47,7 +47,7 @@ export default function TabLayout() {
 
   return (
     <View style={{ flex: 1 }}>
-      <StatusBar hidden />
+      <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
       <Tabs
         screenOptions={{
           tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
@@ -73,11 +73,11 @@ export default function TabLayout() {
             ),
           }}
         />
-        <Tabs.Screen name="create" options={{ href: null }} />
-        <Tabs.Screen name="choose" options={{ href: null }} />
-        <Tabs.Screen name="explore" options={{ href: null }} />
-        <Tabs.Screen name="settings" options={{ href: null }} />
-        <Tabs.Screen name="meetup/[id]" options={{ href: null }} />
+        <Tabs.Screen name="create" options={{ href: null, tabBarStyle: { display: 'none' } }} />
+        <Tabs.Screen name="choose" options={{ href: null, tabBarStyle: { display: 'none' } }} />
+        <Tabs.Screen name="explore" options={{ href: null, tabBarStyle: { display: 'none' } }} />
+        <Tabs.Screen name="settings" options={{ href: null, tabBarStyle: { display: 'none' } }} />
+        <Tabs.Screen name="meetup/[id]" options={{ href: null, tabBarStyle: { display: 'none' } }} />
       </Tabs>
     </View>
   );

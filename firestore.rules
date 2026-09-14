@@ -1,0 +1,254 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isSelf(userId) {
+      return signedIn() && request.auth.uid == userId;
+    }
+
+    function userExists() {
+      return signedIn() &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+
+    function currentUser() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+
+    function isUicEmail() {
+      return signedIn() &&
+        request.auth.token.email is string &&
+        request.auth.token.email.matches('.*@uic\\.edu$');
+    }
+
+    function isPilotInvite() {
+      return request.resource.data.inviteCodeUsed in [
+        'CLUBPILOT',
+        'UICCLUBS',
+        'CLUSTRUIC'
+      ];
+    }
+
+    function hasCampus(campus) {
+      return userExists() && (
+        currentUser().data.campusVerified == true ||
+        currentUser().data.schoolEmailVerified == true ||
+        (
+          currentUser().data.campusAccess is list &&
+          campus in currentUser().data.campusAccess
+        )
+      );
+    }
+
+    function validCampusUserCreate(userId) {
+      return isSelf(userId) &&
+        request.resource.data.email == request.auth.token.email &&
+        request.resource.data.campus == 'UIC' &&
+        request.resource.data.campusAccess == ['UIC'] &&
+        request.resource.data.campusVerified == true &&
+        request.resource.data.schoolEmailVerified == isUicEmail() &&
+        request.resource.data.ageVerified == true &&
+        request.resource.data.agreedToTerms == true &&
+        (
+          (
+            isUicEmail() &&
+            request.resource.data.accessMethod == 'uic-email'
+          ) ||
+          (
+            isPilotInvite() &&
+            request.resource.data.accessMethod == 'invite-code'
+          )
+        );
+    }
+
+    function protectedUserFieldsUnchanged() {
+      return !request.resource.data.diff(resource.data).affectedKeys().hasAny([
+        'email',
+        'campus',
+        'campusAccess',
+        'campusVerified',
+        'schoolEmailVerified',
+        'accessMethod',
+        'inviteCodeUsed',
+        'agreedToTerms',
+        'ageVerified',
+        'agreedAt',
+        'createdAt'
+      ]);
+    }
+
+    function validUicEmailCampusMigration() {
+      return isUicEmail() &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'campus',
+          'campusAccess',
+          'campusVerified',
+          'schoolEmailVerified',
+          'accessMethod'
+        ]) &&
+        (
+          !('campus' in resource.data) ||
+          resource.data.campus == 'UIC' ||
+          resource.data.campus == ''
+        ) &&
+        request.resource.data.email == resource.data.email &&
+        request.resource.data.campus == 'UIC' &&
+        request.resource.data.campusAccess == ['UIC'] &&
+        request.resource.data.campusVerified == true &&
+        request.resource.data.schoolEmailVerified == true &&
+        request.resource.data.accessMethod == 'uic-email';
+    }
+
+    function validPilotInviteCampusMigration() {
+      return (
+          (
+            'accessMethod' in resource.data &&
+            resource.data.accessMethod == 'invite-code'
+          ) ||
+          (
+            'inviteCodeUsed' in resource.data &&
+            resource.data.inviteCodeUsed in [
+              'CLUBPILOT',
+              'UICCLUBS',
+              'CLUSTRUIC'
+            ]
+          )
+        ) &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'campus',
+          'campusAccess',
+          'campusVerified',
+          'schoolEmailVerified',
+          'accessMethod'
+        ]) &&
+        (
+          !('campus' in resource.data) ||
+          resource.data.campus == 'UIC' ||
+          resource.data.campus == ''
+        ) &&
+        request.resource.data.campus == 'UIC' &&
+        request.resource.data.campusAccess == ['UIC'] &&
+        request.resource.data.campusVerified == true &&
+        request.resource.data.schoolEmailVerified == false &&
+        request.resource.data.accessMethod == 'invite-code';
+    }
+
+    function eventHasRequiredCampusFields() {
+      return request.resource.data.keys().hasAll([
+        'title',
+        'description',
+        'date',
+        'time',
+        'creatorId',
+        'campus',
+        'campusOnly',
+        'allowedCampuses',
+        'locationId',
+        'locationName',
+        'locationCode',
+        'locationAddress',
+        'locationBuildingNumber',
+        'locationAccess'
+      ]);
+    }
+
+    function validEventCapacity() {
+      return !('capacity' in request.resource.data) ||
+        request.resource.data.capacity == null ||
+        (
+          request.resource.data.capacity is int &&
+          request.resource.data.capacity > 0
+        );
+    }
+
+    function validCampusEventCreate() {
+      return signedIn() &&
+        eventHasRequiredCampusFields() &&
+        request.resource.data.creatorId == request.auth.uid &&
+        request.resource.data.campus == 'UIC' &&
+        request.resource.data.campusOnly == true &&
+        request.resource.data.allowedCampuses == ['UIC'] &&
+        request.resource.data.visibility == 'campus' &&
+        request.resource.data.locationAccess in [
+          'public-campus',
+          'residence',
+          'venue'
+        ] &&
+        validEventCapacity() &&
+        hasCampus('UIC');
+    }
+
+    function canReadEvent(eventData) {
+      return signedIn() && (
+        !('campusOnly' in eventData) ||
+        eventData.campusOnly != true ||
+        hasCampus(eventData.campus)
+      );
+    }
+
+    function eventCreatorUnchanged() {
+      return request.resource.data.creatorId == resource.data.creatorId;
+    }
+
+    function attendeeMirrorOnly() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+        'attendeeIds',
+        'rsvps',
+        'attendeeCount',
+        'attendees'
+      ]);
+    }
+
+    match /users/{userId} {
+      allow create: if validCampusUserCreate(userId);
+      allow read: if isSelf(userId) || hasCampus('UIC');
+      allow update: if isSelf(userId) && (
+        protectedUserFieldsUnchanged() ||
+        validUicEmailCampusMigration() ||
+        validPilotInviteCampusMigration()
+      );
+      allow delete: if isSelf(userId);
+    }
+
+    match /events/{eventId} {
+      allow get: if canReadEvent(resource.data);
+      allow list: if signedIn() && hasCampus('UIC');
+      allow create: if validCampusEventCreate();
+      allow update: if (
+        signedIn() &&
+        resource.data.creatorId == request.auth.uid &&
+        eventCreatorUnchanged() &&
+        hasCampus(resource.data.campus)
+      ) || (
+        attendeeMirrorOnly() &&
+        hasCampus(resource.data.campus)
+      );
+      allow delete: if signedIn() &&
+        resource.data.creatorId == request.auth.uid &&
+        hasCampus(resource.data.campus);
+
+      match /attendees/{userId} {
+        allow read: if exists(/databases/$(database)/documents/events/$(eventId)) &&
+          canReadEvent(get(/databases/$(database)/documents/events/$(eventId)).data);
+        allow create, delete: if isSelf(userId) &&
+          exists(/databases/$(database)/documents/events/$(eventId)) &&
+          hasCampus(get(/databases/$(database)/documents/events/$(eventId)).data.campus);
+        allow update: if false;
+      }
+    }
+
+    match /reports/{reportId} {
+      allow create: if signedIn() &&
+        request.resource.data.reporterId == request.auth.uid;
+      allow read, update, delete: if false;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

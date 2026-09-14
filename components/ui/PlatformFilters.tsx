@@ -7,16 +7,41 @@ import {
   StyleSheet,
   Platform,
 } from "react-native";
-import { ChevronLeft, ChevronRight } from "lucide-react-native";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Dumbbell,
+  Gamepad2,
+  GraduationCap,
+  Laptop,
+  Music,
+  Palette,
+  Sparkles,
+  Trees,
+  Users,
+  Utensils,
+} from "lucide-react-native";
 import { LinearGradient } from "expo-linear-gradient";
+import { colors } from "@/styles/theme";
 
-export type PlatformType = "all" | "Tech" | "Outdoors" | "Art" | "Food" | "Music" | "Networking" | "Education" | "Gaming" | "Fitness";
+export type PlatformType =
+  | "all"
+  | "Tech"
+  | "Outdoors"
+  | "Art"
+  | "Food"
+  | "Music"
+  | "Networking"
+  | "Education"
+  | "Gaming"
+  | "Fitness";
+
+type FilterIcon = React.ComponentType<{ size?: number; color?: string }>;
 
 interface PlatformOption {
   id: PlatformType;
   label: string;
-  icon: string;
-  color: string[];
+  Icon: FilterIcon;
 }
 
 interface PlatformFiltersProps {
@@ -25,68 +50,17 @@ interface PlatformFiltersProps {
 }
 
 const PLATFORMS: PlatformOption[] = [
-  {
-    id: "all",
-    label: "All Events",
-    icon: "🌐",
-    color: ["#9CA3AF", "#4B5563"],
-  },
-  {
-    id: "Tech",
-    label: "Tech",
-    icon: "💻",
-    color: ["#60A5FA", "#2563EB"],
-  },
-  {
-    id: "Outdoors",
-    label: "Outdoors",
-    icon: "🌲",
-    color: ["#C084FC", "#9333EA"],
-  },
-  {
-    id: "Art",
-    label: "Art",
-    icon: "🎨",
-    color: ["#2563EB", "#1E40AF"],
-  },
-  {
-    id: "Food",
-    label: "Food",
-    icon: "🍽️",
-    color: ["#FB923C", "#EA580C"],
-  },
-  {
-    id: "Music",
-    label: "Music",
-    icon: "🎵",
-    color: ["#FBBF24", "#D97706"],
-  },
-  {
-    id: "Networking",
-    label: "Networking",
-    icon: "🤝",
-    color: ["#FBBF24", "#D97706"],
-  },
-  {
-    id: "Education",
-    label: "Education",
-    icon: "📚",
-    color: ["#FBBF24", "#D97706"],
-  },
-  {
-    id: "Gaming",
-    label: "Gaming",
-    icon: "🎮",
-    color: ["#FBBF24", "#D97706"],
-  },
-  {
-    id: "Fitness",
-    label: "Fitness",
-    icon: "💪",
-    color: ["#FBBF24", "#D97706"],
-  },
+  { id: "all", label: "All Events", Icon: Sparkles },
+  { id: "Tech", label: "Tech", Icon: Laptop },
+  { id: "Outdoors", label: "Outdoors", Icon: Trees },
+  { id: "Art", label: "Art", Icon: Palette },
+  { id: "Food", label: "Food", Icon: Utensils },
+  { id: "Music", label: "Music", Icon: Music },
+  { id: "Networking", label: "Networking", Icon: Users },
+  { id: "Education", label: "Education", Icon: GraduationCap },
+  { id: "Gaming", label: "Gaming", Icon: Gamepad2 },
+  { id: "Fitness", label: "Fitness", Icon: Dumbbell },
 ];
-
 
 export function PlatformFilters({
   onFilterChange,
@@ -105,19 +79,15 @@ export function PlatformFilters({
   };
 
   const scroll = (direction: "left" | "right") => {
-    if (scrollViewRef.current) {
-      const scrollAmount = 200;
-      scrollViewRef.current.scrollTo({
-        x: direction === "left" ? -scrollAmount : scrollAmount,
-        animated: true,
-      });
-    }
+    scrollViewRef.current?.scrollTo({
+      x: direction === "left" ? -200 : 200,
+      animated: true,
+    });
   };
 
   return (
     <View style={styles.container}>
       <View style={styles.wrapper}>
-        {/* Left Scroll Button */}
         {canScrollLeft && (
           <View style={styles.leftButton}>
             <TouchableOpacity
@@ -125,12 +95,11 @@ export function PlatformFilters({
               style={styles.scrollButton}
               activeOpacity={0.7}
             >
-              <ChevronLeft size={20} color="#6B7280" />
+              <ChevronLeft size={20} color={colors.placeholder} />
             </TouchableOpacity>
           </View>
         )}
 
-        {/* Scrollable Container */}
         <ScrollView
           ref={scrollViewRef}
           horizontal
@@ -141,7 +110,8 @@ export function PlatformFilters({
         >
           {PLATFORMS.map((platform) => {
             const isSelected = selectedPlatform === platform.id;
-            
+            const Icon = platform.Icon;
+
             return (
               <TouchableOpacity
                 key={platform.id}
@@ -150,17 +120,17 @@ export function PlatformFilters({
               >
                 {isSelected ? (
                   <LinearGradient
-                    colors= {["#2563EB", "#1E40AF"]}
+                    colors={[colors.primary, colors.primaryDark]}
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 0 }}
                     style={styles.filterButtonSelected}
                   >
-                    <Text style={styles.icon}>{platform.icon}</Text>
+                    <Icon size={16} color="#FFFFFF" />
                     <Text style={styles.labelSelected}>{platform.label}</Text>
                   </LinearGradient>
                 ) : (
                   <View style={styles.filterButton}>
-                    <Text style={styles.icon}>{platform.icon}</Text>
+                    <Icon size={16} color={colors.accent} />
                     <Text style={styles.label}>{platform.label}</Text>
                   </View>
                 )}
@@ -169,7 +139,6 @@ export function PlatformFilters({
           })}
         </ScrollView>
 
-        {/* Right Scroll Button */}
         {canScrollRight && (
           <View style={styles.rightButton}>
             <TouchableOpacity
@@ -177,7 +146,7 @@ export function PlatformFilters({
               style={styles.scrollButton}
               activeOpacity={0.7}
             >
-              <ChevronRight size={20} color="#6B7280" />
+              <ChevronRight size={20} color={colors.placeholder} />
             </TouchableOpacity>
           </View>
         )}
@@ -188,13 +157,13 @@ export function PlatformFilters({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: colors.surface,
     borderBottomWidth: 1,
-    borderBottomColor: "#E5E7EB",
+    borderBottomColor: colors.border,
   },
   wrapper: {
-    maxWidth: 672,
-    marginHorizontal: "auto",
+    maxWidth: 960,
+    alignSelf: "center",
     position: "relative",
     paddingHorizontal: 16,
     paddingVertical: 12,
@@ -220,6 +189,10 @@ const styles = StyleSheet.create({
   },
   scrollButton: {
     padding: 8,
+    backgroundColor: colors.surface,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   scrollContent: {
     gap: 8,
@@ -228,41 +201,41 @@ const styles = StyleSheet.create({
   filterButton: {
     flexDirection: "row",
     alignItems: "center",
+    gap: 8,
     paddingHorizontal: 16,
     paddingVertical: 8,
-    borderRadius: 9999,
-    backgroundColor: "#F3F4F6",
+    borderRadius: 999,
+    backgroundColor: colors.inputBackground,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   filterButtonSelected: {
     flexDirection: "row",
     alignItems: "center",
+    gap: 8,
     paddingHorizontal: 16,
     paddingVertical: 8,
-    borderRadius: 9999,
+    borderRadius: 999,
     ...Platform.select({
       ios: {
-        shadowColor: "#000",
+        shadowColor: colors.primaryDark,
         shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
+        shadowOpacity: 0.14,
+        shadowRadius: 5,
       },
       android: {
         elevation: 3,
       },
     }),
   },
-  icon: {
-    marginRight: 8,
-    fontSize: 14,
-  },
   label: {
     fontSize: 14,
-    fontWeight: "600",
-    color: "#374151",
+    fontWeight: "700",
+    color: colors.inputText,
   },
   labelSelected: {
     fontSize: 14,
-    fontWeight: "600",
+    fontWeight: "700",
     color: "#FFFFFF",
   },
 });

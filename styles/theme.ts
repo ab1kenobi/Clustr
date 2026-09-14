@@ -1,14 +1,17 @@
 // styles/theme.ts
 export const colors = {
   background: "#ffffff",
+  surface: "#FFFFFF",
   inputBackground: "#fafafa",
   inputBorder: "#cccccc",
-  inputText: "#444",
-  placeholder: "#999",
+  inputText: "#444444",
+  placeholder: "#6B7280",
 
-  primary: "#3b82f6",       // main blue
-  primaryLight: "#eef2ff",   // light chip bg
-  success: "#10b981",        // verified green
+  primary: "#3B82F6",
+  primaryDark: "#2563EB",
+  primaryLight: "#EEF2FF",
+  accent: "#A855F7",
+  success: "#10b981",
 
   border: "#e5e7eb",
 };

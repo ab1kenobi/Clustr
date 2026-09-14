@@ -4,6 +4,12 @@
 
 expo-env.d.ts
 # @end expo-cli
-node_modules
+node_modules/
 
 .env
+.DS_Store
+.expo/
+.expo-start*.log
+dist/
+firebase-debug.log
+project_structure.txt

@@ -1,5 +1,5 @@
 import { useRouter } from "expo-router";
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -7,19 +7,53 @@ import {
   TouchableOpacity,
   StyleSheet,
   ScrollView,
-  Image,
   Alert,
+  ActivityIndicator,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Icon from "react-native-vector-icons/Feather";
 import * as ImagePicker from "expo-image-picker";
-import { auth, db } from "@/config/firebase";
+import { auth, db, storage } from "@/config/firebase";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
+import { SmartImage } from "@/components/ui/smart-image";
+import { GenderSelect } from "@/components/ui/gender-select";
+import { colors, spacing } from "@/styles/theme";
+import { getImageUploadErrorMessage, uploadPickedImage } from "@/utils/upload-image";
+
+type Profile = {
+  name: string;
+  bio: string;
+  location: string;
+  age: string;
+  gender: string;
+  avatar: string;
+  interests: string[];
+};
+
+const interests = [
+  "Tech",
+  "Outdoors",
+  "Art",
+  "Food",
+  "Activism",
+  "Music",
+  "Fitness",
+  "Gaming",
+  "Spirituality",
+  "Networking",
+  "Education",
+  "Volunteering",
+];
 
 export default function Onboarding() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const uid = auth.currentUser?.uid;
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [uploadError, setUploadError] = useState("");
+  const [saving, setSaving] = useState(false);
 
-  const [profile, setProfile] = useState<any>({
+  const [profile, setProfile] = useState<Profile>({
     name: "",
     bio: "",
     location: "",
@@ -29,7 +63,6 @@ export default function Onboarding() {
     interests: [],
   });
 
-  // Load existing profile if it exists
   useEffect(() => {
     const loadProfile = async () => {
       if (!uid) return;
@@ -47,95 +80,185 @@ export default function Onboarding() {
         });
       }
     };
+
     loadProfile();
   }, [uid]);
 
-  const interests = [
-    "Tech","Outdoors","Art","Food","Activism","Music",
-    "Fitness","Gaming","Spirituality","Networking","Education","Volunteering",
-  ];
+  const updateProfile = (patch: Partial<Profile>) => {
+    setProfile((prev) => ({ ...prev, ...patch }));
+  };
 
   const toggleInterest = (interest: string) => {
-    setProfile((prev: any) => {
+    setProfile((prev) => {
       const selected = prev.interests.includes(interest)
-        ? prev.interests.filter((i: string) => i !== interest)
+        ? prev.interests.filter((item) => item !== interest)
         : prev.interests.length < 5
-        ? [...prev.interests, interest]
-        : prev.interests;
+          ? [...prev.interests, interest]
+          : prev.interests;
+
       return { ...prev, interests: selected };
     });
   };
 
   const handleImageUpload = async () => {
+    if (!uid) return;
+
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      quality: 0.8,
+      mediaTypes: ["images"],
+      quality: 0.5,
+      allowsEditing: true,
+      aspect: [1, 1],
+      preferredAssetRepresentationMode:
+        ImagePicker.UIImagePickerPreferredAssetRepresentationMode.Compatible,
     });
-    if (!result.canceled && result.assets.length > 0) {
-      setProfile({ ...profile, avatar: result.assets[0].uri });
+
+    if (result.canceled || result.assets.length === 0) return;
+
+    try {
+      setUploadingAvatar(true);
+      const asset = result.assets[0];
+      const avatarUrl = await uploadPickedImage({
+        storage,
+        asset,
+        pathPrefix: `users/${uid}/avatar`,
+        fallbackName: "profile.jpg",
+      });
+      await updateDoc(doc(db, "users", uid), { avatar: avatarUrl });
+      setUploadError("");
+      updateProfile({ avatar: avatarUrl });
+    } catch (error) {
+      console.error("Profile image upload error:", error);
+      const message = getImageUploadErrorMessage(error);
+      setUploadError(message);
+      Alert.alert("Upload failed", message);
+    } finally {
+      setUploadingAvatar(false);
     }
   };
 
   const handleContinue = async () => {
+    const age = Number(profile.age);
     if (!profile.name || !profile.location || !profile.age || profile.interests.length < 3) {
-      Alert.alert("Missing info", "Fill required fields and select at least 3 interests");
+      Alert.alert("Missing info", "Fill required fields and select at least 3 interests.");
       return;
     }
+
+    if (!Number.isInteger(age) || age < 18) {
+      Alert.alert("Age requirement", "Enter a valid age of 18 or older.");
+      return;
+    }
+
     try {
       if (!uid) return;
+      setSaving(true);
       await updateDoc(doc(db, "users", uid), {
         ...profile,
-        age: Number(profile.age),
+        age,
         onboardingComplete: true,
       });
       router.replace("/discover");
     } catch (err) {
       console.error(err);
-      Alert.alert("Error", "Could not save profile");
+      Alert.alert("Error", "Could not save profile.");
+    } finally {
+      setSaving(false);
     }
   };
 
+  const continueDisabled =
+    saving ||
+    uploadingAvatar ||
+    !profile.name ||
+    !profile.location ||
+    !profile.age ||
+    profile.interests.length < 3;
+
   return (
-    <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 50 }}>
+    <ScrollView
+      style={styles.container}
+      contentInsetAdjustmentBehavior="automatic"
+      contentContainerStyle={[
+        styles.content,
+        {
+          paddingTop: insets.top + 16,
+          paddingBottom: insets.bottom + 40,
+        },
+      ]}
+    >
       <Text style={styles.title}>Complete Your Profile</Text>
 
       <View style={styles.avatarContainer}>
         {profile.avatar ? (
-          <Image source={{ uri: profile.avatar }} style={styles.avatar} />
-        ) : null}
-        <TouchableOpacity onPress={handleImageUpload} style={styles.changePhotoButton}>
-          <Icon name="image" size={20} color="#333" />
-          <Text style={styles.changePhotoText}>Upload Profile Photo</Text>
+          <SmartImage uri={profile.avatar} style={styles.avatar} />
+        ) : (
+          <View style={[styles.avatar, styles.avatarPlaceholder]}>
+            <Icon name="user" size={42} color="#9CA3AF" />
+          </View>
+        )}
+        <TouchableOpacity
+          onPress={handleImageUpload}
+          style={styles.changePhotoButton}
+          disabled={uploadingAvatar}
+        >
+          <Icon name="image" size={20} color={colors.primary} />
+          <Text style={styles.changePhotoText}>
+            {uploadingAvatar ? "Uploading..." : "Upload Profile Photo"}
+          </Text>
         </TouchableOpacity>
+        {uploadError ? <Text style={styles.errorText}>{uploadError}</Text> : null}
       </View>
 
-      <Field label="Name" value={profile.name} onChangeText={(t: string) => setProfile({ ...profile, name: t })} />
-      <Field label="Bio" value={profile.bio} onChangeText={(t: string) => setProfile({ ...profile, bio: t })} multiline />
-      <Field label="Location" value={profile.location} onChangeText={(t: string) => setProfile({ ...profile, location: t })} />
-      <Field label="Age" value={profile.age} onChangeText={(t: string) => setProfile({ ...profile, age: t })} keyboardType="numeric" />
-      <Field label="Gender" value={profile.gender} onChangeText={(t: string) => setProfile({ ...profile, gender: t })} />
+      <Field label="Name" value={profile.name} onChangeText={(name) => updateProfile({ name })} />
+      <Field label="Bio" value={profile.bio} onChangeText={(bio) => updateProfile({ bio })} multiline />
+      <Field
+        label="Location"
+        value={profile.location}
+        onChangeText={(location) => updateProfile({ location })}
+      />
+      <Field
+        label="Age"
+        value={profile.age}
+        onChangeText={(age) => updateProfile({ age })}
+        keyboardType="numeric"
+      />
+      <GenderSelect
+        value={profile.gender}
+        onChange={(gender) => updateProfile({ gender })}
+      />
 
-      <Text style={styles.subtitle}>Choose 3–5 Interests</Text>
+      <Text style={styles.subtitle}>Choose 3-5 Interests</Text>
       <View style={styles.grid}>
-        {interests.map((interest) => (
-          <TouchableOpacity
-            key={interest}
-            style={[styles.tag, profile.interests.includes(interest) && styles.tagSelected]}
-            onPress={() => toggleInterest(interest)}
-          >
-            <Text style={[styles.tagText, profile.interests.includes(interest) && styles.tagTextSelected]}>
-              {interest}
-            </Text>
-          </TouchableOpacity>
-        ))}
+        {interests.map((interest) => {
+          const selected = profile.interests.includes(interest);
+          return (
+            <TouchableOpacity
+              key={interest}
+              style={[styles.tag, selected && styles.tagSelected]}
+              onPress={() => toggleInterest(interest)}
+            >
+              <Icon
+                name={selected ? "check-square" : "square"}
+                size={16}
+                color={selected ? "#fff" : colors.placeholder}
+              />
+              <Text style={[styles.tagText, selected && styles.tagTextSelected]}>
+                {interest}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
       </View>
 
       <TouchableOpacity
-        style={[styles.button, (!profile.name || !profile.location || !profile.age || profile.interests.length < 3) && styles.disabledButton]}
+        style={[styles.button, continueDisabled && styles.disabledButton]}
         onPress={handleContinue}
-        disabled={!profile.name || !profile.location || !profile.age || profile.interests.length < 3}
+        disabled={continueDisabled}
       >
-        <Text style={styles.buttonText}>Continue</Text>
+        {saving ? (
+          <ActivityIndicator color="#fff" />
+        ) : (
+          <Text style={styles.buttonText}>Continue</Text>
+        )}
       </TouchableOpacity>
     </ScrollView>
   );
@@ -149,7 +272,13 @@ interface FieldProps {
   keyboardType?: "default" | "numeric" | "email-address" | "phone-pad";
 }
 
-const Field = ({ label, value, onChangeText, multiline = false, keyboardType = "default" }: FieldProps) => (
+const Field = ({
+  label,
+  value,
+  onChangeText,
+  multiline = false,
+  keyboardType = "default",
+}: FieldProps) => (
   <View style={styles.field}>
     <Text style={styles.label}>{label}</Text>
     <TextInput
@@ -163,22 +292,53 @@ const Field = ({ label, value, onChangeText, multiline = false, keyboardType = "
 );
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#fff", padding: 20 },
-  title: { fontSize: 24, fontWeight: "700", marginBottom: 20, textAlign: "center" },
+  container: { flex: 1, backgroundColor: colors.background },
+  content: { paddingHorizontal: 20 },
+  title: { fontSize: 24, fontWeight: "700", marginBottom: 20, textAlign: "center", color: colors.inputText },
   avatarContainer: { alignItems: "center", marginBottom: 20 },
   avatar: { width: 120, height: 120, borderRadius: 60 },
+  avatarPlaceholder: {
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: colors.inputBackground,
+  },
   changePhotoButton: { marginTop: 10, flexDirection: "row", alignItems: "center" },
-  changePhotoText: { marginLeft: 8, color: "#3b82f6", fontWeight: "600" },
+  changePhotoText: { marginLeft: 8, color: colors.primary, fontWeight: "600" },
+  errorText: {
+    color: "#DC2626",
+    fontSize: 13,
+    lineHeight: 18,
+    marginTop: 8,
+    textAlign: "center",
+  },
   field: { marginBottom: 16 },
-  label: { fontWeight: "600", marginBottom: 6, color: "#444" },
-  input: { borderWidth: 1, borderColor: "#ccc", borderRadius: 8, padding: 10, fontSize: 16, backgroundColor: "#fafafa" },
-  subtitle: { fontSize: 18, fontWeight: "600", marginVertical: 12 },
+  label: { fontWeight: "600", marginBottom: 6, color: colors.inputText },
+  input: {
+    borderWidth: 1,
+    borderColor: colors.inputBorder,
+    borderRadius: spacing.radius,
+    padding: 10,
+    fontSize: 16,
+    backgroundColor: colors.inputBackground,
+    color: colors.inputText,
+  },
+  subtitle: { fontSize: 18, fontWeight: "700", marginVertical: 12, color: colors.inputText },
   grid: { flexDirection: "row", flexWrap: "wrap", justifyContent: "center", marginBottom: 24 },
-  tag: { borderWidth: 1, borderColor: "#ccc", borderRadius: 20, paddingVertical: 8, paddingHorizontal: 16, margin: 6 },
-  tagSelected: { backgroundColor: "#4CAF50", borderColor: "#4CAF50" },
-  tagText: { color: "#333", fontSize: 14 },
+  tag: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    borderWidth: 1,
+    borderColor: colors.inputBorder,
+    borderRadius: 20,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    margin: 6,
+  },
+  tagSelected: { backgroundColor: colors.primary, borderColor: colors.primary },
+  tagText: { color: colors.inputText, fontSize: 14 },
   tagTextSelected: { color: "#fff" },
-  button: { backgroundColor: "#4CAF50", padding: 14, borderRadius: 8, alignItems: "center", width: "100%" },
-  disabledButton: { backgroundColor: "#ccc" },
+  button: { backgroundColor: colors.primary, padding: 14, borderRadius: spacing.radius, alignItems: "center", width: "100%" },
+  disabledButton: { backgroundColor: colors.inputBorder },
   buttonText: { color: "#fff", fontSize: 16, fontWeight: "bold" },
 });
