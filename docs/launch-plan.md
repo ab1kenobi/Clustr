@@ -262,5 +262,6 @@ Definition of done:
 - [ ] Commit current local app work.
 - [ ] Push to GitHub.
 - [x] Add CI.
+- [x] Verify fresh clone setup with `npm ci`, lint, TypeScript, and Expo Doctor.
 - [ ] Create GitHub milestone: `UIC Pilot Launch - Nov 14 2026`.
 - [ ] Convert Sprint 1 deliverables into GitHub issues.
